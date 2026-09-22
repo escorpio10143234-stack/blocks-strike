@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minecraft 3D - Volcán Hueco + Lava Mortal</title>
+    <title>Minecraft 3D - Obsidiana + Inventario</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
@@ -17,18 +17,16 @@
         #waterOverlay {
             position: absolute; inset: 0;
             background: rgba(30, 90, 160, 0.45);
-            pointer-events: none;
-            opacity: 0; transition: opacity 0.25s ease;
-            z-index: 8;
+            pointer-events: none; opacity: 0;
+            transition: opacity 0.25s ease; z-index: 8;
         }
         #waterOverlay.active { opacity: 1; }
 
         #lavaOverlay {
             position: absolute; inset: 0;
             background: rgba(180, 40, 5, 0.55);
-            pointer-events: none;
-            opacity: 0; transition: opacity 0.1s ease;
-            z-index: 9;
+            pointer-events: none; opacity: 0;
+            transition: opacity 0.1s ease; z-index: 9;
         }
         #lavaOverlay.active { opacity: 1; }
 
@@ -85,6 +83,7 @@
         #reset-btn:hover { background: #d32f2f; transform: scale(1.03); }
         #reset-btn:active { transform: scale(0.97); }
 
+        /* ✅ HOTBAR (8 slots) */
         #hotbar {
             position: absolute; bottom: 20px; left: 50%;
             transform: translateX(-50%);
@@ -106,6 +105,11 @@
             transition: all 0.15s ease;
             cursor: pointer;
             position: relative;
+        }
+        .slot.empty {
+            background: rgba(255, 255, 255, 0.02);
+            border-style: dashed;
+            opacity: 0.6;
         }
         .slot .swatch {
             width: 24px; height: 24px;
@@ -134,6 +138,202 @@
         }
         #blockInfo.visible { opacity: 1; }
 
+        /* ✅ MOCHILA (botón) */
+        #backpackBtn {
+            position: absolute;
+            top: 20px; left: 20px;
+            width: 52px; height: 52px;
+            background: rgba(60, 40, 20, 0.85);
+            border: 2px solid rgba(200, 160, 100, 0.6);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 22;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        #backpackBtn:hover {
+            background: rgba(90, 60, 30, 0.95);
+            border-color: #ffd54f;
+            transform: scale(1.05);
+        }
+        #backpackBtn svg {
+            width: 30px; height: 30px;
+            fill: #c8a678;
+            stroke: #5d4037;
+            stroke-width: 1;
+        }
+        #backpackBtn .badge {
+            position: absolute;
+            bottom: -6px; right: -6px;
+            background: #4caf50;
+            color: #fff;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: 2px solid rgba(0,0,0,0.6);
+        }
+
+        /* ✅ INVENTARIO OVERLAY */
+        #inventory {
+            position: absolute; inset: 0;
+            background: rgba(10, 15, 25, 0.82);
+            backdrop-filter: blur(8px);
+            z-index: 28;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            user-select: none;
+        }
+        #inventory.active { display: flex; }
+        #inventory .inv-title {
+            color: #fff;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+        }
+        #inventory .inv-sub {
+            color: #d1d5db;
+            font-size: 13px;
+            margin-bottom: 20px;
+            opacity: 0.85;
+        }
+        #inventory .close-btn {
+            position: absolute; top: 20px; right: 20px;
+            width: 44px; height: 44px;
+            background: rgba(229, 57, 53, 0.9);
+            color: #fff;
+            border: none; border-radius: 10px;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 700;
+        }
+        #inventory .close-btn:hover {
+            background: #d32f2f;
+            transform: scale(1.08);
+        }
+
+        .inv-section-title {
+            color: #ffd54f;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Slots de inventario (destino) */
+        .inv-slots {
+            display: flex; gap: 10px;
+            margin-bottom: 30px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+        }
+        .inv-slot {
+            width: 60px; height: 60px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        .inv-slot.filled {
+            border-style: solid;
+            border-color: rgba(255, 213, 79, 0.7);
+            background: rgba(255, 213, 79, 0.08);
+        }
+        .inv-slot:hover {
+            border-color: #ffd54f;
+            background: rgba(255, 213, 79, 0.12);
+        }
+        .inv-slot .slot-num {
+            position: absolute; top: 2px; left: 6px;
+            font-size: 10px; opacity: 0.5;
+        }
+        .inv-slot .swatch {
+            width: 30px; height: 30px;
+            border-radius: 5px;
+            margin-bottom: 3px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
+            display: none;
+        }
+        .inv-slot.filled .swatch { display: block; }
+        .inv-slot .clear-btn {
+            position: absolute; top: -8px; right: -8px;
+            width: 20px; height: 20px;
+            background: #e53935;
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .inv-slot.filled .clear-btn { display: flex; }
+
+        /* Catálogo de bloques disponibles */
+        .inv-catalog {
+            display: grid;
+            grid-template-columns: repeat(5, 70px);
+            gap: 12px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+        }
+        .cat-item {
+            width: 70px; height: 70px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .cat-item:hover {
+            border-color: #4dd0e1;
+            background: rgba(77, 208, 225, 0.15);
+            transform: translateY(-3px);
+        }
+        .cat-item.selected {
+            border-color: #ffd54f;
+            background: rgba(255, 213, 79, 0.2);
+            box-shadow: 0 0 12px rgba(255, 213, 79, 0.6);
+        }
+        .cat-item .swatch {
+            width: 32px; height: 32px;
+            border-radius: 5px;
+            margin-bottom: 4px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
+        }
+
         #loading {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -142,8 +342,7 @@
             padding: 20px 40px; border-radius: 12px;
             z-index: 40;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            display: none;
-            text-align: center;
+            display: none; text-align: center;
         }
         #loading.active { display: block; }
         #loading .progress {
@@ -170,46 +369,50 @@
         }
         #deathScreen.active { display: flex; }
         #deathScreen .message {
-            color: #fff;
-            font-size: 40px;
-            font-weight: 900;
+            color: #fff; font-size: 40px; font-weight: 900;
             letter-spacing: 3px;
-            text-shadow: 0 0 20px rgba(255, 50, 50, 0.9), 0 4px 10px rgba(0,0,0,0.8);
+            text-shadow: 0 0 20px rgba(255, 50, 50, 0.9);
             margin-bottom: 30px;
             text-align: center;
         }
         #deathScreen .timer {
-            color: #ff2020;
-            font-size: 120px;
-            font-weight: 900;
-            text-shadow: 0 0 30px rgba(255, 0, 0, 1), 0 6px 20px rgba(0,0,0,0.9);
+            color: #ff2020; font-size: 120px; font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 1);
             font-family: 'Courier New', monospace;
             line-height: 1;
         }
         #deathScreen .sub {
-            color: #ffcccc;
-            font-size: 16px;
-            margin-top: 20px;
-            letter-spacing: 1px;
+            color: #ffcccc; font-size: 16px;
+            margin-top: 20px; letter-spacing: 1px;
         }
 
         #eruptionWarning {
             position: absolute; top: 80px; left: 50%;
             transform: translateX(-50%);
-            color: #fff;
-            font-size: 18px;
-            font-weight: 700;
+            color: #fff; font-size: 18px; font-weight: 700;
             background: rgba(180, 40, 10, 0.85);
-            padding: 10px 24px;
-            border-radius: 10px;
+            padding: 10px 24px; border-radius: 10px;
             border: 2px solid #ff5722;
             box-shadow: 0 0 25px rgba(255, 87, 34, 0.7);
-            z-index: 15;
-            opacity: 0;
+            z-index: 15; opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none;
         }
         #eruptionWarning.active { opacity: 1; }
+
+        /* Hint cuando apuntas sin bloque seleccionado */
+        #emptyHint {
+            position: absolute; bottom: 100px; left: 50%;
+            transform: translateX(-50%);
+            color: #ffd54f; font-size: 13px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 6px 16px; border-radius: 8px;
+            z-index: 14;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        #emptyHint.visible { opacity: 1; }
     </style>
 </head>
 <body>
@@ -225,15 +428,38 @@
             <div class="controls-card">
                 <b>WASD</b>: Moverse &nbsp;|&nbsp; <b>ESPACIO</b>: Saltar<br>
                 <b>↑ / ↓</b>: Subir / Sumergirse (en agua)<br>
-                <b>1-9</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
+                <b>1-8</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
                 <b>ENTER</b>: Romper sólidos &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar agua/lava<br>
-                <b style="color:#ff5722">⚠️ La lava mata — no la pises</b>
+                <b>🎒 MOCHILA</b>: asigna bloques a la hotbar<br>
+                <b style="color:#ff5722">⚠️ La lava mata — el agua + lava = obsidiana</b>
             </div>
             <button id="reset-btn">🔄 Resetear Mundo</button>
         </div>
 
         <div id="waterOverlay"></div>
         <div id="lavaOverlay"></div>
+
+        <!-- ✅ MOCHILA -->
+        <div id="backpackBtn" title="Abrir mochila (E)">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 6 C6 3, 8 2, 12 2 C16 2, 18 3, 18 6 L18 10 L20 10 L20 21 L4 21 L4 10 L6 10 Z M8 8 L8 10 L16 10 L16 8 C16 6.5, 14.5 5, 12 5 C9.5 5, 8 6.5, 8 8 Z M9 13 L9 18 L11 18 L11 13 Z M13 13 L13 18 L15 18 L15 13 Z"/>
+            </svg>
+            <span class="badge" id="backpackBadge">0</span>
+        </div>
+
+        <!-- ✅ INVENTARIO -->
+        <div id="inventory">
+            <button class="close-btn" id="invCloseBtn">✕</button>
+            <div class="inv-title">🎒 MOCHILA</div>
+            <div class="inv-sub">Selecciona un bloque del catálogo → haz clic en un slot para asignarlo</div>
+
+            <div class="inv-section-title">Slots de Hotbar (8)</div>
+            <div class="inv-slots" id="invSlots"></div>
+
+            <div class="inv-section-title">Bloques disponibles</div>
+            <div class="inv-catalog" id="invCatalog"></div>
+        </div>
+
         <div id="deathScreen">
             <div class="message">💀 MORISTE POR LAVA 💀</div>
             <div class="timer" id="deathTimer">5</div>
@@ -244,6 +470,7 @@
         <div id="crosshair"></div>
         <div id="info">🎮 Chunks: <span id="chunkCount">0</span> &nbsp;|&nbsp; Bloques: <span id="blockCount">0</span> &nbsp;|&nbsp; Agua: <span id="waterCount">0</span> &nbsp;|&nbsp; Lava: <span id="lavaCount">0</span></div>
         <div id="blockInfo"></div>
+        <div id="emptyHint">⚠️ Selecciona bloques desde la mochila (🎒)</div>
 
         <div id="hotbar"></div>
     </div>
@@ -270,6 +497,7 @@
         const LAVA_LIFETIME_MS = 5 * 60 * 1000;
         const DEATH_DURATION_MS = 5000;
         const FIRST_ERUPTION_DELAY_MS = 60 * 1000;
+        const HOTBAR_SIZE = 8;
 
         // ==========================================
         // ESCENA
@@ -373,7 +601,8 @@
         // ==========================================
         const BLOCK_TYPES = {
             AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4,
-            WOOD: 5, WATER: 6, LAVA: 7, PALM_WOOD: 8, PALM_LEAVES: 9
+            WOOD: 5, WATER: 6, LAVA: 7, PALM_WOOD: 8, PALM_LEAVES: 9,
+            OBSIDIAN: 10   // ✅ NUEVO
         };
 
         const materialMap = {
@@ -396,10 +625,16 @@
             [BLOCK_TYPES.PALM_LEAVES]: new THREE.MeshLambertMaterial({
                 map: generateBlockTexture('#4caf50', '#2e7d32'),
                 transparent: true, opacity: 0.9
+            }),
+            // ✅ OBSIDIANA — negro violáceo con reflejo brillante
+            [BLOCK_TYPES.OBSIDIAN]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#1a1a2e', '#0a0a1a', 200),
+                emissive: 0x2a1a4e, emissiveIntensity: 0.25
             })
         };
 
-        const HOTBAR = [
+        // ✅ Catálogo completo (todo lo que se puede asignar a la hotbar)
+        const BLOCK_CATALOG = [
             { type: BLOCK_TYPES.GRASS, label: 'Pasto',  color: '#689f38' },
             { type: BLOCK_TYPES.DIRT,  label: 'Tierra', color: '#795548' },
             { type: BLOCK_TYPES.STONE, label: 'Piedra', color: '#9e9e9e' },
@@ -408,8 +643,12 @@
             { type: BLOCK_TYPES.WATER, label: 'Agua',   color: '#40a4df' },
             { type: BLOCK_TYPES.LAVA,  label: 'Lava',   color: '#ff5722' },
             { type: BLOCK_TYPES.PALM_WOOD, label: 'Palma', color: '#c8a678' },
-            { type: BLOCK_TYPES.PALM_LEAVES, label: 'Hojas', color: '#4caf50' }
+            { type: BLOCK_TYPES.PALM_LEAVES, label: 'Hojas', color: '#4caf50' },
+            { type: BLOCK_TYPES.OBSIDIAN, label: 'Obsidiana', color: '#1a1a2e' }
         ];
+
+        // ✅ Inventario: 8 slots, inicialmente VACÍOS (null)
+        const inventory = new Array(HOTBAR_SIZE).fill(null);
         let selectedSlot = 0;
 
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -421,13 +660,10 @@
         const getCoordKey = (x, y, z) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
         const getBlock = (x, y, z) => blockMap.get(getCoordKey(x, y, z));
 
-        // 🔧 FIX #1: la lava ya NO es sólida para el jugador
-        //    (así puede entrar dentro y morir). Sí bloquea el agua.
         const isSolid = (x, y, z) => {
             const b = blockMap.get(getCoordKey(x, y, z));
             return b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA;
         };
-
         const isWaterAt = (x, y, z) => {
             const b = blockMap.get(getCoordKey(x, y, z));
             return b && b.type === BLOCK_TYPES.WATER;
@@ -540,9 +776,10 @@
         // ==========================================
         // GUARDADO
         // ==========================================
-        const SAVE_KEY_PREFIX = 'MCN_V7_CHUNK_';
-        const SAVE_META_KEY = 'MCN_V7_META';
-        const SAVE_VERSION = 3;
+        const SAVE_KEY_PREFIX = 'MCN_V8_CHUNK_';
+        const SAVE_META_KEY = 'MCN_V8_META';
+        const SAVE_INV_KEY = 'MCN_V8_INV';
+        const SAVE_VERSION = 4;
 
         function saveChunk(chunk) {
             const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
@@ -553,6 +790,24 @@
             } catch (e) {
                 console.warn(`No se pudo guardar chunk ${chunk.cx},${chunk.cz}:`, e);
             }
+        }
+        function saveInventory() {
+            try {
+                localStorage.setItem(SAVE_INV_KEY, JSON.stringify(inventory));
+            } catch (e) {}
+        }
+        function loadInventory() {
+            try {
+                const raw = localStorage.getItem(SAVE_INV_KEY);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length === HOTBAR_SIZE) {
+                    for (let i = 0; i < HOTBAR_SIZE; i++) {
+                        const v = parsed[i];
+                        if (v === null || typeof v === 'number') inventory[i] = v;
+                    }
+                }
+            } catch (e) {}
         }
         function saveAllDirtyChunks(force = false) {
             for (const chunk of chunks.values()) {
@@ -581,7 +836,9 @@
             const toRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i);
-                if (k && (k.startsWith(SAVE_KEY_PREFIX) || k === SAVE_META_KEY)) toRemove.push(k);
+                if (k && (k.startsWith(SAVE_KEY_PREFIX) || k === SAVE_META_KEY || k === SAVE_INV_KEY)) {
+                    toRemove.push(k);
+                }
             }
             toRemove.forEach(k => localStorage.removeItem(k));
         }
@@ -619,8 +876,25 @@
             return true;
         }
 
+        // ✅ Reemplaza un bloque por otro (para la conversión a obsidiana)
+        function replaceBlockType(bx, by, bz, newType) {
+            const key = getCoordKey(bx, by, bz);
+            const existing = blockMap.get(key);
+            if (!existing) return false;
+            existing.type = newType;
+            delete existing.level;
+            delete existing.expiresAt;
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (chunk) {
+                chunk.blocks.set(key, existing);
+                markChunkDirty(bx, bz);
+                chunk.needsSave = true;
+            }
+            return true;
+        }
+
         // ==========================================
-        // FÍSICA DE FLUIDOS
+        // FÍSICA DE FLUIDOS + REACCIÓN AGUA/LAVA
         // ==========================================
         const WATER_SOURCE = 7;
         const WATER_MIN_LEVEL = 1;
@@ -645,6 +919,31 @@
         }
         function getFluidMinLevel(type) {
             return type === BLOCK_TYPES.LAVA ? LAVA_MIN_LEVEL : WATER_MIN_LEVEL;
+        }
+
+        // ✅ NUEVO: si un bloque de LAVA es vecino ortogonal de uno de AGUA,
+        //    la LAVA se convierte en OBSIDIANA y el AGUA desaparece.
+        function checkObsidianReaction(bx, by, bz) {
+            const block = getBlock(bx, by, bz);
+            if (!block || block.type !== BLOCK_TYPES.LAVA) return false;
+
+            const neighbors = [
+                [bx+1,by,bz], [bx-1,by,bz],
+                [bx,by+1,bz], [bx,by-1,bz],
+                [bx,by,bz+1], [bx,by,bz-1]
+            ];
+            for (const [nx, ny, nz] of neighbors) {
+                const nb = getBlock(nx, ny, nz);
+                if (nb && nb.type === BLOCK_TYPES.WATER) {
+                    // Reacción: lava → obsidiana, agua → desaparece
+                    replaceBlockType(bx, by, bz, BLOCK_TYPES.OBSIDIAN);
+                    removeBlockFromWorld(nx, ny, nz);
+                    queueFluidNeighbors(bx, by, bz);
+                    queueFluidNeighbors(nx, ny, nz);
+                    return true;
+                }
+            }
+            return false;
         }
 
         function setFluidAt(x, y, z, type, level) {
@@ -698,6 +997,31 @@
                 const [x, y, z] = key.split(',').map(Number);
                 const block = getBlock(x, y, z);
                 if (!block || !isFluid(block.type)) continue;
+
+                // ✅ NUEVO: reacción agua + lava = obsidiana (prioridad alta)
+                if (block.type === BLOCK_TYPES.LAVA) {
+                    if (checkObsidianReaction(x, y, z)) { changed = true; continue; }
+                }
+                // Si el agua es vecina de lava, también se procesa (borra)
+                if (block.type === BLOCK_TYPES.WATER) {
+                    const neighbors = [
+                        [x+1,y,z], [x-1,y,z], [x,y+1,z], [x,y-1,z], [x,y,z+1], [x,y,z-1]
+                    ];
+                    let reacted = false;
+                    for (const [nx, ny, nz] of neighbors) {
+                        const nb = getBlock(nx, ny, nz);
+                        if (nb && nb.type === BLOCK_TYPES.LAVA) {
+                            replaceBlockType(nx, ny, nz, BLOCK_TYPES.OBSIDIAN);
+                            removeBlockFromWorld(x, y, z);
+                            queueFluidNeighbors(nx, ny, nz);
+                            queueFluidNeighbors(x, y, z);
+                            reacted = true;
+                            changed = true;
+                            break;
+                        }
+                    }
+                    if (reacted) continue;
+                }
 
                 const type = block.type;
                 const minLevel = getFluidMinLevel(type);
@@ -776,11 +1100,15 @@
         const VOLCANO_RADIUS = 36;
         const VOLCANO_HEIGHT = 44;
 
-        // 🔧 FIX #3: parámetros del volcán hueco
-        const CRATER_RADIUS = 10;         // borde del cráter
-        const CRATER_DEPTH = 12;          // profundidad del hueco
-        const CONE_WALL_THICKNESS = 3;    // grosor de las paredes del cono
-        const LAVA_POOL_DEPTH = 3;        // cuántos bloques de lava al fondo del cráter
+        const CRATER_RADIUS = 10;
+        const CRATER_DEPTH = 12;
+        const CONE_WALL_THICKNESS = 3;
+        const LAVA_POOL_DEPTH = 3;
+
+        // ✅ NUEVO: parámetros del "cuello" superior del volcán
+        const NECK_RADIUS = 5;          // radio del cuello cilíndrico
+        const NECK_HEIGHT = 6;          // cuánto sobresale por encima del cráter
+        const NECK_WALL_THICKNESS = 2;  // grosor de la pared del cuello
 
         function placePalmTree(x, baseY, z) {
             const height = 4 + Math.floor(hash2D(x * 3.1, z * 5.7) * 3);
@@ -803,7 +1131,7 @@
 
             let lastProgress = 0;
 
-            // ---- PASO 1: base del terreno + agua ----
+            // ---- PASO 1: terreno base ----
             for (let x = 0; x < WORLD_SIZE; x++) {
                 for (let z = 0; z < WORLD_SIZE; z++) {
                     const dx = x - centerX;
@@ -865,12 +1193,11 @@
                 }
                 if (onProgress && x - lastProgress >= 10) {
                     lastProgress = x;
-                    onProgress(Math.floor((x / WORLD_SIZE) * 60));
+                    onProgress(Math.floor((x / WORLD_SIZE) * 55));
                 }
             }
 
-            // ---- PASO 2: tallar el cráter hueco ----
-            // 🔧 FIX #3: vaciar el interior del cono y colocar lava al fondo
+            // ---- PASO 2: tallar cráter hueco ----
             const craterPeakY = SEA_LEVEL + VOLCANO_HEIGHT;
             const craterFloorY = craterPeakY - CRATER_DEPTH;
 
@@ -879,21 +1206,17 @@
                     if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
                     const dvx = x - VOLCANO_X;
                     const dvz = z - VOLCANO_Z;
-                    const distToCenter = Math.sqrt(dvx * dvx + dvz * dvz);
+                    const d = Math.sqrt(dvx * dvx + dvz * dvz);
 
-                    if (distToCenter < CRATER_RADIUS) {
-                        // Dentro del cráter: vaciar desde craterFloorY hasta arriba
+                    if (d < CRATER_RADIUS) {
                         for (let y = craterFloorY; y <= craterPeakY + 2; y++) {
                             const b = getBlock(x, y, z);
                             if (b) removeBlockFromWorld(x, y, z);
                         }
-
-                        // Colocar lava en el fondo del cráter (piscina de lava)
-                        if (distToCenter < CRATER_RADIUS - 1) {
-                            for (let d = 0; d < LAVA_POOL_DEPTH; d++) {
-                                const ly = craterFloorY + d;
-                                const below = getBlock(x, ly - 1, z);
-                                if (below && isSolid(x, ly - 1, z)) {
+                        if (d < CRATER_RADIUS - 1) {
+                            for (let dp = 0; dp < LAVA_POOL_DEPTH; dp++) {
+                                const ly = craterFloorY + dp;
+                                if (isSolid(x, ly - 1, z)) {
                                     addBlockToWorld(x, ly, z, BLOCK_TYPES.LAVA, LAVA_SOURCE);
                                 }
                             }
@@ -902,15 +1225,13 @@
                 }
             }
 
-            // Asegurar paredes del cráter: rellenar borde si quedó demasiado fino
+            // Reforzar anillo del cráter
             for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 1); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 1); x++) {
                 for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 1); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 1); z++) {
                     if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
                     const dvx = x - VOLCANO_X;
                     const dvz = z - VOLCANO_Z;
                     const d = Math.sqrt(dvx * dvx + dvz * dvz);
-
-                    // Anillo entre CRATER_RADIUS-1 y CRATER_RADIUS+1: asegurar muro
                     if (d >= CRATER_RADIUS - 1 && d < CRATER_RADIUS + CONE_WALL_THICKNESS) {
                         for (let y = craterFloorY - 2; y <= craterPeakY; y++) {
                             if (!getBlock(x, y, z)) {
@@ -922,13 +1243,80 @@
                 }
             }
 
-            if (onProgress) onProgress(75);
+            if (onProgress) onProgress(70);
 
-            // ---- PASO 3: palmeras ----
+            // ---- PASO 3: cuello en punta (grueso, hueco) ----
+            // ✅ NUEVO: un cilindro grueso encima del cráter, hueco, con paredes
+            //    alternando DIRT/STONE, y lava hasta cierta altura dentro.
+            const neckBaseY = craterPeakY;
+            const neckTopY = neckBaseY + NECK_HEIGHT;
+            const neckOuterR = NECK_RADIUS;
+            const neckInnerR = NECK_RADIUS - NECK_WALL_THICKNESS;
+
+            for (let x = Math.floor(VOLCANO_X - neckOuterR - 1); x <= Math.floor(VOLCANO_X + neckOuterR + 1); x++) {
+                for (let z = Math.floor(VOLCANO_Z - neckOuterR - 1); z <= Math.floor(VOLCANO_Z + neckOuterR + 1); z++) {
+                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const d = Math.sqrt(dvx * dvx + dvz * dvz);
+
+                    // Solo construir el anillo del cuello (entre neckInnerR y neckOuterR)
+                    if (d >= neckInnerR && d <= neckOuterR) {
+                        for (let y = neckBaseY; y <= neckTopY; y++) {
+                            // Punta: solo el anillo superior, hueco dentro
+                            const mix = fbm(x * 0.4, z * 0.4, 2);
+                            const type = mix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
+                            // Reemplazar cualquier bloque en esa posición
+                            const key = getCoordKey(x, y, z);
+                            if (blockMap.has(key)) {
+                                replaceBlockType(x, y, z, type);
+                            } else {
+                                addBlockToWorld(x, y, z, type);
+                            }
+                        }
+                    }
+
+                    // Interior del cuello: hueco, con lava subiendo un poco
+                    if (d < neckInnerR - 0.1) {
+                        for (let y = neckBaseY; y <= neckTopY; y++) {
+                            // Vaciar
+                            const b = getBlock(x, y, z);
+                            if (b) removeBlockFromWorld(x, y, z);
+                        }
+                        // Columna de lava dentro del cuello (2 bloques)
+                        const lavaTopInNeck = neckBaseY + 1;
+                        for (let y = neckBaseY - 1; y <= lavaTopInNeck; y++) {
+                            if (isSolid(x, y - 1, z) || isLavaAt(x, y - 1, z) || getBlock(x, y - 1, z) === undefined) {
+                                addBlockToWorld(x, y, z, BLOCK_TYPES.LAVA, LAVA_SOURCE);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Tapa superior: un anillo de bloques en el borde superior del cuello
+            // (para que la "punta" sea sólida en su borde, hueca en el centro)
+            for (let x = Math.floor(VOLCANO_X - neckOuterR - 1); x <= Math.floor(VOLCANO_X + neckOuterR + 1); x++) {
+                for (let z = Math.floor(VOLCANO_Z - neckOuterR - 1); z <= Math.floor(VOLCANO_Z + neckOuterR + 1); z++) {
+                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
+                    const d = Math.sqrt((x - VOLCANO_X) ** 2 + (z - VOLCANO_Z) ** 2);
+                    if (d >= neckInnerR - 0.5 && d <= neckOuterR) {
+                        const key = getCoordKey(x, neckTopY + 1, z);
+                        if (!blockMap.has(key)) {
+                            const mix = fbm(x * 0.5, z * 0.5, 2);
+                            addBlockToWorld(x, neckTopY + 1, z, mix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT);
+                        }
+                    }
+                }
+            }
+
+            if (onProgress) onProgress(85);
+
+            // ---- PASO 4: palmeras ----
             for (let x = 2; x < WORLD_SIZE - 2; x++) {
                 for (let z = 2; z < WORLD_SIZE - 2; z++) {
                     let surfaceY = -1, surfaceType = -1;
-                    for (let y = SEA_LEVEL + 6; y >= 0; y--) {
+                    for (let y = SEA_LEVEL + 8; y >= 0; y--) {
                         const b = getBlock(x, y, z);
                         if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
                             surfaceY = y; surfaceType = b.type; break;
@@ -950,7 +1338,7 @@
                         }
                     }
                 }
-                if (onProgress && x % 15 === 0) onProgress(75 + Math.floor((x / WORLD_SIZE) * 25));
+                if (onProgress && x % 15 === 0) onProgress(85 + Math.floor((x / WORLD_SIZE) * 15));
             }
             if (onProgress) onProgress(100);
         }
@@ -967,7 +1355,7 @@
                         if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
                         const x = cx + dx, z = cz + dz;
                         if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
-                        for (let y = 40; y >= 0; y--) {
+                        for (let y = 60; y >= 0; y--) {
                             const b = getBlock(x, y, z);
                             if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
                                 return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
@@ -1096,18 +1484,15 @@
             return isWaterAt(cx, feetY, cz) || isWaterAt(cx, midY, cz) || isWaterAt(cx, eyeY, cz);
         }
 
-        // 🔧 FIX #1: chequeo robusto de lava. Se evalúa SIEMPRE (aunque
-        //    el jugador esté "encima" del bloque, porque la lava ya no es sólida).
         function isPlayerInLava() {
             const cx = Math.floor(camera.position.x);
             const cz = Math.floor(camera.position.z);
-            // Múltiples puntos verticales del cuerpo
             const points = [
-                camera.position.y,                     // ojos
-                camera.position.y - 0.4,               // cabeza
-                camera.position.y - PLAYER_HEIGHT * 0.5,  // torso
-                camera.position.y - PLAYER_HEIGHT * 0.9,  // pies
-                camera.position.y - PLAYER_HEIGHT       // suelo
+                camera.position.y,
+                camera.position.y - 0.4,
+                camera.position.y - PLAYER_HEIGHT * 0.5,
+                camera.position.y - PLAYER_HEIGHT * 0.9,
+                camera.position.y - PLAYER_HEIGHT
             ];
             for (const py of points) {
                 if (isLavaAt(cx, Math.floor(py), cz)) return true;
@@ -1251,12 +1636,196 @@
         }
 
         // ==========================================
+        // INVENTARIO / MOCHILA UI
+        // ==========================================
+        const inventoryEl = document.getElementById('inventory');
+        const invSlotsEl = document.getElementById('invSlots');
+        const invCatalogEl = document.getElementById('invCatalog');
+        const backpackBadge = document.getElementById('backpackBadge');
+        let catalogSelection = null;   // { type, label, color } o null
+
+        function getBlockInfoByType(type) {
+            return BLOCK_CATALOG.find(b => b.type === type) || null;
+        }
+
+        function buildInventoryUI() {
+            // Slots
+            invSlotsEl.innerHTML = '';
+            for (let i = 0; i < HOTBAR_SIZE; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inv-slot';
+                slot.dataset.index = i;
+                slot.innerHTML = `
+                    <span class="slot-num">${i + 1}</span>
+                    <div class="swatch"></div>
+                    <span class="slot-label"></span>
+                    <button class="clear-btn" title="Quitar">✕</button>
+                `;
+                slot.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('clear-btn')) {
+                        // Quitar bloque del slot
+                        inventory[i] = null;
+                        saveInventory();
+                        refreshInventorySlots();
+                        refreshHotbar();
+                        return;
+                    }
+                    // Asignar bloque seleccionado al slot
+                    if (catalogSelection) {
+                        inventory[i] = catalogSelection.type;
+                        saveInventory();
+                        refreshInventorySlots();
+                        refreshHotbar();
+                    }
+                });
+                invSlotsEl.appendChild(slot);
+            }
+            refreshInventorySlots();
+
+            // Catálogo
+            invCatalogEl.innerHTML = '';
+            BLOCK_CATALOG.forEach((item) => {
+                const el = document.createElement('div');
+                el.className = 'cat-item';
+                el.dataset.type = item.type;
+                el.innerHTML = `
+                    <div class="swatch" style="background:${item.color}"></div>
+                    <span>${item.label}</span>
+                `;
+                el.addEventListener('click', () => {
+                    // Toggle selección
+                    if (catalogSelection && catalogSelection.type === item.type) {
+                        catalogSelection = null;
+                    } else {
+                        catalogSelection = item;
+                    }
+                    refreshCatalogSelection();
+                });
+                invCatalogEl.appendChild(el);
+            });
+        }
+
+        function refreshInventorySlots() {
+            const slotEls = invSlotsEl.querySelectorAll('.inv-slot');
+            slotEls.forEach((el, i) => {
+                const type = inventory[i];
+                const info = type !== null ? getBlockInfoByType(type) : null;
+                if (info) {
+                    el.classList.add('filled');
+                    el.querySelector('.swatch').style.background = info.color;
+                    el.querySelector('.slot-label').textContent = info.label;
+                } else {
+                    el.classList.remove('filled');
+                    el.querySelector('.slot-label').textContent = '';
+                }
+            });
+        }
+
+        function refreshCatalogSelection() {
+            const items = invCatalogEl.querySelectorAll('.cat-item');
+            items.forEach(el => {
+                const t = Number(el.dataset.type);
+                el.classList.toggle('selected', catalogSelection && catalogSelection.type === t);
+            });
+        }
+
+        function countFilledSlots() {
+            return inventory.filter(v => v !== null).length;
+        }
+
+        function refreshBackpackBadge() {
+            backpackBadge.textContent = countFilledSlots();
+        }
+
+        function openInventory() {
+            inventoryEl.classList.add('active');
+            controls.unlock();
+        }
+        function closeInventory() {
+            inventoryEl.classList.remove('active');
+            catalogSelection = null;
+            refreshCatalogSelection();
+        }
+
+        document.getElementById('backpackBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openInventory();
+        });
+        document.getElementById('invCloseBtn').addEventListener('click', () => {
+            closeInventory();
+        });
+
+        // ✅ HOTBAR (8 slots, reflejan el inventario)
+        function buildHotbarUI() {
+            const hotbar = document.getElementById('hotbar');
+            hotbar.innerHTML = '';
+            for (let i = 0; i < HOTBAR_SIZE; i++) {
+                const el = document.createElement('div');
+                el.className = 'slot';
+                el.dataset.index = i;
+                el.innerHTML = `
+                    <span class="key">${i + 1}</span>
+                    <div class="swatch" style="display:none"></div>
+                    <span class="slot-label"></span>
+                `;
+                el.addEventListener('click', () => {
+                    if (isDead) return;
+                    if (inventory[i] === null) return;   // no seleccionar vacíos
+                    selectedSlot = i;
+                    refreshHotbar();
+                });
+                hotbar.appendChild(el);
+            }
+            refreshHotbar();
+        }
+
+        function refreshHotbar() {
+            const slots = document.querySelectorAll('#hotbar .slot');
+            slots.forEach((el, i) => {
+                const type = inventory[i];
+                const info = type !== null ? getBlockInfoByType(type) : null;
+                const swatch = el.querySelector('.swatch');
+                const label = el.querySelector('.slot-label');
+                if (info) {
+                    el.classList.remove('empty');
+                    swatch.style.display = 'block';
+                    swatch.style.background = info.color;
+                    label.textContent = info.label;
+                } else {
+                    el.classList.add('empty');
+                    swatch.style.display = 'none';
+                    label.textContent = '';
+                }
+                el.classList.toggle('active', i === selectedSlot && info !== null);
+            });
+            refreshBackpackBadge();
+        }
+
+        function updateBlockInfo(msg) {
+            const blockInfo = document.getElementById('blockInfo');
+            blockInfo.textContent = msg;
+            blockInfo.classList.add('visible');
+            clearTimeout(updateBlockInfo._t);
+            updateBlockInfo._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
+        }
+
+        buildInventoryUI();
+        buildHotbarUI();
+
+        // ==========================================
         // INPUT
         // ==========================================
         const keys = { w: false, a: false, s: false, d: false, space: false, up: false, down: false };
 
         document.addEventListener('keydown', (e) => {
             if (isDead) return;
+            if (inventoryEl.classList.contains('active')) {
+                if (e.code === 'Escape' || e.code === 'KeyE') {
+                    closeInventory();
+                }
+                return;
+            }
+
             if (e.code === 'KeyW') keys.w = true;
             if (e.code === 'KeyA') keys.a = true;
             if (e.code === 'KeyS') keys.s = true;
@@ -1265,16 +1834,23 @@
             if (e.code === 'ArrowUp') keys.up = true;
             if (e.code === 'ArrowDown') keys.down = true;
 
+            // ✅ Abrir mochila con E
+            if (e.code === 'KeyE' && controls.isLocked) {
+                openInventory();
+                return;
+            }
+
             const num = parseInt(e.key);
-            if (num >= 1 && num <= HOTBAR.length) {
-                selectedSlot = num - 1;
-                updateHotbarUI();
+            if (num >= 1 && num <= HOTBAR_SIZE) {
+                if (inventory[num - 1] !== null) {
+                    selectedSlot = num - 1;
+                    refreshHotbar();
+                }
             }
             if (e.code === 'Enter' && controls.isLocked) {
                 const target = getTargetBlock();
                 if (target) removeBlock(target.x, target.y, target.z);
             }
-            // 🔧 FIX #2: tecla Q para vaciar fluidos apuntados
             if (e.code === 'KeyQ' && controls.isLocked) {
                 const target = getTargetFluid();
                 if (target) {
@@ -1296,19 +1872,38 @@
 
         window.addEventListener('wheel', (e) => {
             if (isDead || !controls.isLocked) return;
-            selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR.length) % HOTBAR.length;
-            updateHotbarUI();
+            if (inventoryEl.classList.contains('active')) return;
+            // Rueda solo entre slots llenos
+            const filled = [];
+            for (let i = 0; i < HOTBAR_SIZE; i++) if (inventory[i] !== null) filled.push(i);
+            if (filled.length === 0) return;
+
+            const dir = e.deltaY > 0 ? 1 : -1;
+            let idx = filled.indexOf(selectedSlot);
+            if (idx === -1) idx = 0;
+            idx = (idx + dir + filled.length) % filled.length;
+            selectedSlot = filled[idx];
+            refreshHotbar();
         });
 
         window.addEventListener('mousedown', (e) => {
             if (isDead || !controls.isLocked) return;
+            if (inventoryEl.classList.contains('active')) return;
             if (e.button === 0) {
+                if (inventory[selectedSlot] === null) {
+                    // Sin bloque asignado → mostrar hint
+                    const hint = document.getElementById('emptyHint');
+                    hint.classList.add('visible');
+                    clearTimeout(hint._t);
+                    hint._t = setTimeout(() => hint.classList.remove('visible'), 1800);
+                    return;
+                }
                 const target = getTargetBlock();
                 if (!target) return;
                 const bx = target.x + target.normal.x;
                 const by = target.y + target.normal.y;
                 const bz = target.z + target.normal.z;
-                addBlock(bx, by, bz, HOTBAR[selectedSlot].type);
+                addBlock(bx, by, bz, inventory[selectedSlot]);
             }
         });
 
@@ -1319,6 +1914,7 @@
         // ==========================================
         function addBlock(x, y, z, type) {
             if (isDead) return;
+            if (type === null || type === undefined) return;
             const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
             const key = getCoordKey(bx, by, bz);
             const existing = blockMap.get(key);
@@ -1353,8 +1949,6 @@
             const key = getCoordKey(bx, by, bz);
             const block = blockMap.get(key);
             if (!block) return false;
-            // Con Enter se pueden romper sólidos, pero NO fluidos.
-            // Los fluidos se vacían con Q.
             if (block.type === BLOCK_TYPES.WATER || block.type === BLOCK_TYPES.LAVA) return false;
             removeBlockFromWorld(bx, by, bz);
             queueFluidNeighbors(bx, by, bz);
@@ -1372,7 +1966,6 @@
             const solidMeshes = [];
             for (const chunk of chunks.values()) {
                 for (const child of chunk.group.children) {
-                    // Excluir agua (permite apuntar a través), incluir lava (bloquea)
                     if (child.isInstancedMesh && !child.userData.isWater) {
                         solidMeshes.push(child);
                     }
@@ -1393,7 +1986,6 @@
             return null;
         }
 
-        // 🔧 FIX #2: raycast exclusivo para fluidos (agua y lava)
         function getTargetFluid() {
             raycaster.setFromCamera({ x: 0, y: 0 }, camera);
             const fluidMeshes = [];
@@ -1410,54 +2002,18 @@
                 const mesh = hit.object;
                 if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
                     const pos = mesh.userData.blockPositions[hit.instanceId];
-                    if (pos) {
-                        return { x: pos.x, y: pos.y, z: pos.z };
-                    }
+                    if (pos) return { x: pos.x, y: pos.y, z: pos.z };
                 }
             }
             return null;
         }
 
         // ==========================================
-        // UI HOTBAR
-        // ==========================================
-        function buildHotbarUI() {
-            const hotbar = document.getElementById('hotbar');
-            hotbar.innerHTML = '';
-            HOTBAR.forEach((slot, idx) => {
-                const el = document.createElement('div');
-                el.className = 'slot' + (idx === selectedSlot ? ' active' : '');
-                el.innerHTML = `
-                    <span class="key">${idx + 1}</span>
-                    <div class="swatch" style="background:${slot.color}"></div>
-                    <span>${slot.label}</span>
-                `;
-                el.addEventListener('click', () => {
-                    if (isDead) return;
-                    selectedSlot = idx;
-                    updateHotbarUI();
-                });
-                hotbar.appendChild(el);
-            });
-        }
-
-        function updateHotbarUI() {
-            const slots = document.querySelectorAll('.slot');
-            slots.forEach((s, i) => s.classList.toggle('active', i === selectedSlot));
-            const blockInfo = document.getElementById('blockInfo');
-            blockInfo.textContent = `Seleccionado: ${HOTBAR[selectedSlot].label}`;
-            blockInfo.classList.add('visible');
-            clearTimeout(updateHotbarUI._t);
-            updateHotbarUI._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
-        }
-        buildHotbarUI();
-
-        // ==========================================
         // RESET
         // ==========================================
         document.getElementById('reset-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!confirm("¿Resetear el mundo?")) return;
+            if (!confirm("¿Resetear el mundo y el inventario?")) return;
 
             const loading = document.getElementById('loading');
             const loadingBar = document.getElementById('loadingBar');
@@ -1477,6 +2033,13 @@
                 chunks.clear();
                 blockMap.clear();
                 fluidUpdateQueue.clear();
+
+                // ✅ Reset inventario vacío
+                for (let i = 0; i < HOTBAR_SIZE; i++) inventory[i] = null;
+                selectedSlot = 0;
+                saveInventory();
+                refreshHotbar();
+                refreshInventorySlots();
 
                 generateWorld((p) => { loadingBar.style.width = p + '%'; });
                 for (const chunk of chunks.values()) chunk.dirty = true;
@@ -1554,12 +2117,8 @@
                 return;
             }
 
-            if (controls.isLocked) {
-                // 🔧 FIX #1: chequear lava ANTES de mover, sin importar dónde esté el jugador
-                const inLava = isPlayerInLava();
-
-                // Feedback visual instantáneo
-                if (inLava) {
+            if (controls.isLocked && !inventoryEl.classList.contains('active')) {
+                if (isPlayerInLava()) {
                     lavaOverlay.classList.add('active');
                     triggerDeath();
                     renderer.render(scene, camera);
@@ -1650,7 +2209,6 @@
 
                 camera.position.set(px, py, pz);
 
-                // 🔧 FIX #1: re-chequear lava DESPUÉS de mover también
                 if (isPlayerInLava()) {
                     lavaOverlay.classList.add('active');
                     triggerDeath();
@@ -1663,6 +2221,10 @@
         // ==========================================
         // ARRANQUE
         // ==========================================
+        loadInventory();
+        refreshHotbar();
+        refreshInventorySlots();
+
         const loadingBar = document.getElementById('loadingBar');
         loadOrGenerateWorld((p) => { loadingBar.style.width = p + '%'; });
         animate();
@@ -1675,6 +2237,7 @@
 
         window.addEventListener('beforeunload', () => {
             saveAllDirtyChunks(true);
+            saveInventory();
         });
     </script>
 </body>
