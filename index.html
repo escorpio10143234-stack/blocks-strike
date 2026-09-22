@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minecraft 3D - Volcán Hueco + Lava Mortal</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+        }
+        #canvas-container { width: 100%; height: 100%; position: relative; }
+
+        #waterOverlay {
+            position: absolute; inset: 0;
+            background: rgba(30, 90, 160, 0.45);
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.25s ease;
+            z-index: 8;
+        }
+        #waterOverlay.active { opacity: 1; }
+
+        #lavaOverlay {
+            position: absolute; inset: 0;
+            background: rgba(180, 40, 5, 0.55);
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.1s ease;
+            z-index: 9;
+        }
+        #lavaOverlay.active { opacity: 1; }
+
+        #info {
+            position: absolute; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff; background: rgba(0, 0, 0, 0.75);
+            padding: 10px 24px; border-radius: 12px;
+            font-size: 13px; font-weight: 500;
+            pointer-events: none; user-select: none;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 20; opacity: 0.85;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+        #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+        #crosshair::after  { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+        #blocker {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.75);
+            z-index: 30; display: flex; justify-content: center;
+            align-items: center; color: white; user-select: none;
+            backdrop-filter: blur(10px); flex-direction: column;
+            gap: 15px; transition: opacity 0.3s ease;
+        }
+        #blocker .title { font-size: 32px; font-weight: 700; letter-spacing: 1px; cursor: pointer; }
+        #blocker .subtitle { font-size: 16px; opacity: 0.85; }
+        #blocker .controls-card {
+            font-size: 13px; opacity: 0.75; margin-top: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px; border-radius: 8px;
+            line-height: 1.8; text-align: center;
+        }
+        #blocker.hidden { display: none; }
+        #reset-btn {
+            margin-top: 10px; background: #e53935; color: white;
+            border: none; padding: 8px 18px; font-size: 13px;
+            font-weight: 600; border-radius: 6px; cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        #reset-btn:hover { background: #d32f2f; transform: scale(1.03); }
+        #reset-btn:active { transform: scale(0.97); }
+
+        #hotbar {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 6px;
+            z-index: 15; user-select: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(6px);
+        }
+        .slot {
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #fff; font-size: 9px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .slot .swatch {
+            width: 24px; height: 24px;
+            border-radius: 4px; margin-bottom: 2px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+        }
+        .slot .key {
+            position: absolute; top: 2px; left: 4px;
+            font-size: 9px; opacity: 0.6;
+        }
+        .slot.active {
+            border-color: #ffd54f;
+            background: rgba(255, 213, 79, 0.15);
+            box-shadow: 0 0 12px rgba(255, 213, 79, 0.5);
+            transform: translateY(-4px);
+        }
+
+        #blockInfo {
+            position: absolute; bottom: 90px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff; font-size: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 12px; border-radius: 6px;
+            opacity: 0; transition: opacity 0.2s ease;
+            pointer-events: none; z-index: 12;
+        }
+        #blockInfo.visible { opacity: 1; }
+
+        #loading {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff; font-size: 16px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px 40px; border-radius: 12px;
+            z-index: 40;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            text-align: center;
+        }
+        #loading.active { display: block; }
+        #loading .progress {
+            margin-top: 12px; height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; width: 240px;
+        }
+        #loading .progress-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.15s ease;
+        }
+
+        #deathScreen {
+            position: absolute; inset: 0;
+            background: rgba(80, 10, 10, 0.75);
+            z-index: 35;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        #deathScreen.active { display: flex; }
+        #deathScreen .message {
+            color: #fff;
+            font-size: 40px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255, 50, 50, 0.9), 0 4px 10px rgba(0,0,0,0.8);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        #deathScreen .timer {
+            color: #ff2020;
+            font-size: 120px;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 1), 0 6px 20px rgba(0,0,0,0.9);
+            font-family: 'Courier New', monospace;
+            line-height: 1;
+        }
+        #deathScreen .sub {
+            color: #ffcccc;
+            font-size: 16px;
+            margin-top: 20px;
+            letter-spacing: 1px;
+        }
+
+        #eruptionWarning {
+            position: absolute; top: 80px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            background: rgba(180, 40, 10, 0.85);
+            padding: 10px 24px;
+            border-radius: 10px;
+            border: 2px solid #ff5722;
+            box-shadow: 0 0 25px rgba(255, 87, 34, 0.7);
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        #eruptionWarning.active { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="loading">
+            🌋 Generando isla...
+            <div class="progress"><div class="progress-bar" id="loadingBar"></div></div>
+        </div>
+
+        <div id="blocker">
+            <div class="title" id="enter-btn">⛏️ HAZ CLIC AQUÍ PARA ENTRAR</div>
+            <div class="subtitle">Presiona ESC para liberar el ratón</div>
+            <div class="controls-card">
+                <b>WASD</b>: Moverse &nbsp;|&nbsp; <b>ESPACIO</b>: Saltar<br>
+                <b>↑ / ↓</b>: Subir / Sumergirse (en agua)<br>
+                <b>1-9</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
+                <b>ENTER</b>: Romper sólidos &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar agua/lava<br>
+                <b style="color:#ff5722">⚠️ La lava mata — no la pises</b>
+            </div>
+            <button id="reset-btn">🔄 Resetear Mundo</button>
+        </div>
+
+        <div id="waterOverlay"></div>
+        <div id="lavaOverlay"></div>
+        <div id="deathScreen">
+            <div class="message">💀 MORISTE POR LAVA 💀</div>
+            <div class="timer" id="deathTimer">5</div>
+            <div class="sub">Reapareciendo en el centro de la isla...</div>
+        </div>
+        <div id="eruptionWarning">🌋 ¡ERUPCIÓN VOLCÁNICA EN CURSO! 🌋</div>
+
+        <div id="crosshair"></div>
+        <div id="info">🎮 Chunks: <span id="chunkCount">0</span> &nbsp;|&nbsp; Bloques: <span id="blockCount">0</span> &nbsp;|&nbsp; Agua: <span id="waterCount">0</span> &nbsp;|&nbsp; Lava: <span id="lavaCount">0</span></div>
+        <div id="blockInfo"></div>
+
+        <div id="hotbar"></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        const WORLD_SIZE = 150;
+        const CHUNK_SIZE = 16;
+        const CHUNK_COUNT = Math.ceil(WORLD_SIZE / CHUNK_SIZE);
+        const SEA_LEVEL = 8;
+
+        const ERUPTION_INTERVAL_MS = 30 * 60 * 1000;
+        const LAVA_LIFETIME_MS = 5 * 60 * 1000;
+        const DEATH_DURATION_MS = 5000;
+        const FIRST_ERUPTION_DELAY_MS = 60 * 1000;
+
+        // ==========================================
+        // ESCENA
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const SKY_COLOR = 0x87ceeb;
+        const UNDERWATER_COLOR = 0x1e5aa0;
+        scene.background = new THREE.Color(SKY_COLOR);
+        scene.fog = new THREE.FogExp2(SKY_COLOR, 0.010);
+
+        const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // ==========================================
+        // CONTROLES
+        // ==========================================
+        const controls = new PointerLockControls(camera, document.body);
+        const blocker = document.getElementById('blocker');
+        blocker.addEventListener('click', (e) => {
+            if (e.target.id === 'reset-btn') return;
+            controls.lock();
+        });
+        controls.addEventListener('lock', () => blocker.classList.add('hidden'));
+        controls.addEventListener('unlock', () => blocker.classList.remove('hidden'));
+
+        // ==========================================
+        // LUZ
+        // ==========================================
+        scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+        scene.add(new THREE.HemisphereLight(0x87ceeb, 0x553311, 0.4));
+
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.15);
+        sunLight.position.set(80, 120, 40);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.set(2048, 2048);
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 300;
+        sunLight.shadow.camera.left = -100;
+        sunLight.shadow.camera.right = 100;
+        sunLight.shadow.camera.top = 100;
+        sunLight.shadow.camera.bottom = -100;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        // ==========================================
+        // TEXTURAS
+        // ==========================================
+        function generateBlockTexture(baseColor, borderColor, noiseAmount = 150) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < noiseAmount; i++) {
+                const x = Math.floor(Math.random() * 64);
+                const y = Math.floor(Math.random() * 64);
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+                ctx.fillRect(x, y, 2, 2);
+            }
+            if (borderColor) {
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(2, 2, 60, 60);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
+        }
+
+        function generateWaterTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 64);
+            grad.addColorStop(0, 'rgba(64, 164, 223, 0.85)');
+            grad.addColorStop(1, 'rgba(28, 100, 180, 0.9)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(x, y, 6, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
+        }
+
+        // ==========================================
+        // BLOQUES
+        // ==========================================
+        const BLOCK_TYPES = {
+            AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4,
+            WOOD: 5, WATER: 6, LAVA: 7, PALM_WOOD: 8, PALM_LEAVES: 9
+        };
+
+        const materialMap = {
+            [BLOCK_TYPES.GRASS]: new THREE.MeshLambertMaterial({ map: generateBlockTexture('#689f38', '#33691e') }),
+            [BLOCK_TYPES.DIRT]:  new THREE.MeshLambertMaterial({ map: generateBlockTexture('#795548', '#4e342e') }),
+            [BLOCK_TYPES.STONE]: new THREE.MeshLambertMaterial({ map: generateBlockTexture('#9e9e9e', '#424242') }),
+            [BLOCK_TYPES.SAND]:  new THREE.MeshLambertMaterial({ map: generateBlockTexture('#5d4037', '#3e2723') }),
+            [BLOCK_TYPES.WOOD]:  new THREE.MeshLambertMaterial({ map: generateBlockTexture('#a1887f', '#5d4037') }),
+            [BLOCK_TYPES.WATER]: new THREE.MeshLambertMaterial({
+                map: generateWaterTexture(),
+                transparent: true, opacity: 0.75, depthWrite: false
+            }),
+            [BLOCK_TYPES.LAVA]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#ff5722', '#bf360c'),
+                emissive: 0xff5722, emissiveIntensity: 0.9
+            }),
+            [BLOCK_TYPES.PALM_WOOD]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#c8a678', '#8d6e4a')
+            }),
+            [BLOCK_TYPES.PALM_LEAVES]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#4caf50', '#2e7d32'),
+                transparent: true, opacity: 0.9
+            })
+        };
+
+        const HOTBAR = [
+            { type: BLOCK_TYPES.GRASS, label: 'Pasto',  color: '#689f38' },
+            { type: BLOCK_TYPES.DIRT,  label: 'Tierra', color: '#795548' },
+            { type: BLOCK_TYPES.STONE, label: 'Piedra', color: '#9e9e9e' },
+            { type: BLOCK_TYPES.SAND,  label: 'Arena',  color: '#5d4037' },
+            { type: BLOCK_TYPES.WOOD,  label: 'Madera', color: '#a1887f' },
+            { type: BLOCK_TYPES.WATER, label: 'Agua',   color: '#40a4df' },
+            { type: BLOCK_TYPES.LAVA,  label: 'Lava',   color: '#ff5722' },
+            { type: BLOCK_TYPES.PALM_WOOD, label: 'Palma', color: '#c8a678' },
+            { type: BLOCK_TYPES.PALM_LEAVES, label: 'Hojas', color: '#4caf50' }
+        ];
+        let selectedSlot = 0;
+
+        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+
+        // ==========================================
+        // MUNDO / CHUNKS
+        // ==========================================
+        const blockMap = new Map();
+        const getCoordKey = (x, y, z) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+        const getBlock = (x, y, z) => blockMap.get(getCoordKey(x, y, z));
+
+        // 🔧 FIX #1: la lava ya NO es sólida para el jugador
+        //    (así puede entrar dentro y morir). Sí bloquea el agua.
+        const isSolid = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            return b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA;
+        };
+
+        const isWaterAt = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            return b && b.type === BLOCK_TYPES.WATER;
+        };
+        const isLavaAt = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            return b && b.type === BLOCK_TYPES.LAVA;
+        };
+
+        const chunks = new Map();
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        function chunkKey(cx, cz) { return `${cx},${cz}`; }
+        function getChunkOfBlock(bx, bz) {
+            return { cx: Math.floor(bx / CHUNK_SIZE), cz: Math.floor(bz / CHUNK_SIZE) };
+        }
+        function ensureChunk(cx, cz) {
+            const key = chunkKey(cx, cz);
+            let chunk = chunks.get(key);
+            if (!chunk) {
+                const group = new THREE.Group();
+                group.userData.cx = cx;
+                group.userData.cz = cz;
+                worldGroup.add(group);
+                chunk = { cx, cz, group, dirty: true, needsSave: false, blocks: new Map() };
+                chunks.set(key, chunk);
+            }
+            return chunk;
+        }
+        function getChunkForBlock(bx, by, bz) {
+            const { cx, cz } = getChunkOfBlock(bx, bz);
+            if (cx < 0 || cz < 0 || cx >= CHUNK_COUNT || cz >= CHUNK_COUNT) return null;
+            return ensureChunk(cx, cz);
+        }
+        function markChunkDirty(bx, bz) {
+            const { cx, cz } = getChunkOfBlock(bx, bz);
+            const lx = bx - cx * CHUNK_SIZE;
+            const lz = bz - cz * CHUNK_SIZE;
+            const edge = lx === 0 || lx === CHUNK_SIZE - 1 || lz === 0 || lz === CHUNK_SIZE - 1;
+            const markOne = (x, z) => {
+                if (x < 0 || z < 0 || x >= CHUNK_COUNT || z >= CHUNK_COUNT) return;
+                const c = chunks.get(chunkKey(x, z));
+                if (c) c.dirty = true;
+            };
+            markOne(cx, cz);
+            if (edge) { markOne(cx-1,cz); markOne(cx+1,cz); markOne(cx,cz-1); markOne(cx,cz+1); }
+        }
+
+        const dummy = new THREE.Object3D();
+
+        function rebuildChunk(chunk) {
+            while (chunk.group.children.length > 0) {
+                const child = chunk.group.children[0];
+                if (child.dispose) child.dispose();
+                chunk.group.remove(child);
+            }
+            const buckets = {};
+            for (const t of Object.values(BLOCK_TYPES)) {
+                if (t === BLOCK_TYPES.AIR) continue;
+                buckets[t] = [];
+            }
+            for (const data of chunk.blocks.values()) {
+                if (buckets[data.type]) buckets[data.type].push(data);
+            }
+            for (const [typeStr, list] of Object.entries(buckets)) {
+                if (list.length === 0) continue;
+                const type = Number(typeStr);
+                const mat = materialMap[type];
+                const isWater = type === BLOCK_TYPES.WATER;
+                const isLava = type === BLOCK_TYPES.LAVA;
+                const isPalmLeaves = type === BLOCK_TYPES.PALM_LEAVES;
+
+                const mesh = new THREE.InstancedMesh(blockGeometry, mat, list.length);
+                mesh.castShadow = !isWater && !isPalmLeaves && !isLava;
+                mesh.receiveShadow = !isWater && !isLava;
+                mesh.userData.isWater = isWater;
+                mesh.userData.isLava = isLava;
+                mesh.userData.isFluid = isWater || isLava;
+
+                const positions = [];
+                list.forEach((data, idx) => {
+                    let yOffset = 0.5;
+                    if (isWater || isLava) {
+                        const lvl = data.level ?? 7;
+                        const max = isLava ? 5 : 7;
+                        yOffset = 0.5 - (1 - Math.min(lvl, max) / max) * 0.35;
+                    }
+                    dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(idx, dummy.matrix);
+                    positions.push({ x: data.x, y: data.y, z: data.z });
+                });
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.userData.blockPositions = positions;
+                chunk.group.add(mesh);
+            }
+            chunk.dirty = false;
+        }
+
+        function processDirtyChunks(maxPerFrame = 4) {
+            let processed = 0;
+            for (const chunk of chunks.values()) {
+                if (processed >= maxPerFrame) break;
+                if (chunk.dirty) { rebuildChunk(chunk); processed++; }
+            }
+            return processed;
+        }
+
+        // ==========================================
+        // GUARDADO
+        // ==========================================
+        const SAVE_KEY_PREFIX = 'MCN_V7_CHUNK_';
+        const SAVE_META_KEY = 'MCN_V7_META';
+        const SAVE_VERSION = 3;
+
+        function saveChunk(chunk) {
+            const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
+            const data = Array.from(chunk.blocks.values());
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+                chunk.needsSave = false;
+            } catch (e) {
+                console.warn(`No se pudo guardar chunk ${chunk.cx},${chunk.cz}:`, e);
+            }
+        }
+        function saveAllDirtyChunks(force = false) {
+            for (const chunk of chunks.values()) {
+                if (chunk.needsSave || force) saveChunk(chunk);
+            }
+            try {
+                localStorage.setItem(SAVE_META_KEY, JSON.stringify({
+                    version: SAVE_VERSION, worldSize: WORLD_SIZE, chunks: chunks.size
+                }));
+            } catch (e) {}
+        }
+        function loadChunkFromStorage(cx, cz) {
+            const raw = localStorage.getItem(SAVE_KEY_PREFIX + chunkKey(cx, cz));
+            if (!raw) return null;
+            try { return JSON.parse(raw); } catch (e) { return null; }
+        }
+        function hasAnySave() {
+            const meta = localStorage.getItem(SAVE_META_KEY);
+            if (!meta) return false;
+            try {
+                const m = JSON.parse(meta);
+                return m.version === SAVE_VERSION && m.worldSize === WORLD_SIZE;
+            } catch (e) { return false; }
+        }
+        function clearAllSave() {
+            const toRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && (k.startsWith(SAVE_KEY_PREFIX) || k === SAVE_META_KEY)) toRemove.push(k);
+            }
+            toRemove.forEach(k => localStorage.removeItem(k));
+        }
+
+        // ==========================================
+        // AÑADIR / QUITAR BLOQUES
+        // ==========================================
+        function addBlockToWorld(bx, by, bz, type, level = undefined, expiresAt = undefined) {
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (!chunk) return false;
+            const key = getCoordKey(bx, by, bz);
+            if (blockMap.has(key)) return false;
+
+            const data = { x: bx, y: by, z: bz, type };
+            if (level !== undefined) data.level = level;
+            if (expiresAt !== undefined) data.expiresAt = expiresAt;
+
+            blockMap.set(key, data);
+            chunk.blocks.set(key, data);
+            markChunkDirty(bx, bz);
+            chunk.needsSave = true;
+            return true;
+        }
+
+        function removeBlockFromWorld(bx, by, bz) {
+            const key = getCoordKey(bx, by, bz);
+            if (!blockMap.has(key)) return false;
+            blockMap.delete(key);
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (chunk) {
+                chunk.blocks.delete(key);
+                markChunkDirty(bx, bz);
+                chunk.needsSave = true;
+            }
+            return true;
+        }
+
+        // ==========================================
+        // FÍSICA DE FLUIDOS
+        // ==========================================
+        const WATER_SOURCE = 7;
+        const WATER_MIN_LEVEL = 1;
+        const LAVA_SOURCE = 5;
+        const LAVA_MIN_LEVEL = 1;
+
+        let fluidUpdateQueue = new Set();
+        let fluidProcessing = false;
+
+        function queueFluidUpdate(x, y, z) { fluidUpdateQueue.add(getCoordKey(x, y, z)); }
+        function queueFluidNeighbors(x, y, z) {
+            queueFluidUpdate(x+1,y,z); queueFluidUpdate(x-1,y,z);
+            queueFluidUpdate(x,y+1,z); queueFluidUpdate(x,y-1,z);
+            queueFluidUpdate(x,y,z+1); queueFluidUpdate(x,y,z-1);
+        }
+
+        function isFluid(type) {
+            return type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
+        }
+        function getFluidMaxLevel(type) {
+            return type === BLOCK_TYPES.LAVA ? LAVA_SOURCE : WATER_SOURCE;
+        }
+        function getFluidMinLevel(type) {
+            return type === BLOCK_TYPES.LAVA ? LAVA_MIN_LEVEL : WATER_MIN_LEVEL;
+        }
+
+        function setFluidAt(x, y, z, type, level) {
+            const key = getCoordKey(x, y, z);
+            const existing = blockMap.get(key);
+            if (existing && existing.type !== type) return;
+
+            const max = getFluidMaxLevel(type);
+            const newLevel = existing ? Math.max(existing.level || 0, Math.min(level, max)) : Math.min(level, max);
+
+            if (existing) {
+                existing.level = newLevel;
+                const chunk = getChunkForBlock(x, y, z);
+                if (chunk) {
+                    chunk.blocks.set(key, existing);
+                    markChunkDirty(x, z);
+                    chunk.needsSave = true;
+                }
+            } else {
+                addBlockToWorld(x, y, z, type, newLevel);
+            }
+            queueFluidUpdate(x, y, z);
+            queueFluidNeighbors(x, y, z);
+        }
+
+        function hasFluidSource(x, y, z, type) {
+            const self = getBlock(x, y, z);
+            if (!self) return false;
+            const selfLevel = self.level || 0;
+            const neighbors = [
+                [x, y+1, z], [x+1, y, z], [x-1, y, z], [x, y, z+1], [x, y, z-1]
+            ];
+            for (const [nx, ny, nz] of neighbors) {
+                const n = getBlock(nx, ny, nz);
+                if (n && n.type === type) {
+                    if (ny > y) return true;
+                    if (n.level > selfLevel) return true;
+                }
+            }
+            return false;
+        }
+
+        function tickFluids() {
+            if (fluidUpdateQueue.size === 0 || fluidProcessing) return false;
+            fluidProcessing = true;
+            const batch = Array.from(fluidUpdateQueue);
+            fluidUpdateQueue.clear();
+            let changed = false;
+
+            for (const key of batch) {
+                const [x, y, z] = key.split(',').map(Number);
+                const block = getBlock(x, y, z);
+                if (!block || !isFluid(block.type)) continue;
+
+                const type = block.type;
+                const minLevel = getFluidMinLevel(type);
+                const maxLevel = getFluidMaxLevel(type);
+                const isLava = type === BLOCK_TYPES.LAVA;
+
+                const below = getBlock(x, y - 1, z);
+                if (!below || below.type === type) {
+                    if (!below || below.level < maxLevel) {
+                        setFluidAt(x, y - 1, z, type, maxLevel);
+                        changed = true;
+                    }
+                } else if (!isFluid(below.type) && below.type !== BLOCK_TYPES.AIR) {
+                    if (block.level > minLevel) {
+                        const nl = block.level - 1;
+                        for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+                            const nx = x + dx, nz = z + dz;
+                            const nb = getBlock(nx, y, nz);
+                            if (!nb || nb.type === BLOCK_TYPES.AIR) {
+                                setFluidAt(nx, y, nz, type, nl);
+                                changed = true;
+                            } else if (nb.type === type && nb.level < nl) {
+                                nb.level = nl;
+                                const ch = getChunkForBlock(nx, y, nz);
+                                if (ch) {
+                                    ch.blocks.set(getCoordKey(nx, y, nz), nb);
+                                    markChunkDirty(nx, nz);
+                                    ch.needsSave = true;
+                                }
+                                queueFluidUpdate(nx, y, nz);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (!isLava && block.level <= minLevel && !hasFluidSource(x, y, z, type)) {
+                        removeBlockFromWorld(x, y, z);
+                        queueFluidNeighbors(x, y, z);
+                        changed = true;
+                        continue;
+                    }
+                }
+            }
+            fluidProcessing = false;
+            return changed;
+        }
+
+        // ==========================================
+        // GENERACIÓN DEL MUNDO
+        // ==========================================
+        function hash2D(x, z) {
+            const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
+            return n - Math.floor(n);
+        }
+        function smoothNoise(x, z) {
+            const xi = Math.floor(x), zi = Math.floor(z);
+            const xf = x - xi, zf = z - zi;
+            const u = (1 - Math.cos(xf * Math.PI)) * 0.5;
+            const v = (1 - Math.cos(zf * Math.PI)) * 0.5;
+            const a = hash2D(xi, zi);
+            const b = hash2D(xi + 1, zi);
+            const c = hash2D(xi, zi + 1);
+            const d = hash2D(xi + 1, zi + 1);
+            return a*(1-u)*(1-v) + b*u*(1-v) + c*(1-u)*v + d*u*v;
+        }
+        function fbm(x, z, octaves = 4) {
+            let v = 0, a = 1, f = 1, n = 0;
+            for (let i = 0; i < octaves; i++) {
+                v += smoothNoise(x*f, z*f) * a;
+                n += a; a *= 0.5; f *= 2;
+            }
+            return v / n;
+        }
+
+        const VOLCANO_X = WORLD_SIZE / 2 + 30;
+        const VOLCANO_Z = WORLD_SIZE / 2 - 20;
+        const VOLCANO_RADIUS = 36;
+        const VOLCANO_HEIGHT = 44;
+
+        // 🔧 FIX #3: parámetros del volcán hueco
+        const CRATER_RADIUS = 10;         // borde del cráter
+        const CRATER_DEPTH = 12;          // profundidad del hueco
+        const CONE_WALL_THICKNESS = 3;    // grosor de las paredes del cono
+        const LAVA_POOL_DEPTH = 3;        // cuántos bloques de lava al fondo del cráter
+
+        function placePalmTree(x, baseY, z) {
+            const height = 4 + Math.floor(hash2D(x * 3.1, z * 5.7) * 3);
+            for (let i = 0; i < height; i++) addBlockToWorld(x, baseY + i, z, BLOCK_TYPES.PALM_WOOD);
+            const topY = baseY + height;
+            const leafOffsets = [
+                [0,0],[1,0],[2,0],[-1,0],[-2,0],[0,1],[0,2],[0,-1],[0,-2],
+                [1,1],[1,-1],[-1,1],[-1,-1]
+            ];
+            for (const [dx, dz] of leafOffsets) addBlockToWorld(x + dx, topY, z + dz, BLOCK_TYPES.PALM_LEAVES);
+            addBlockToWorld(x, topY + 1, z, BLOCK_TYPES.PALM_LEAVES);
+        }
+
+        function generateWorld(onProgress) {
+            const centerX = WORLD_SIZE / 2;
+            const centerZ = WORLD_SIZE / 2;
+            const maxRadius = WORLD_SIZE * 0.44;
+            const BEACH_LOWER = SEA_LEVEL - 1;
+            const BEACH_UPPER = SEA_LEVEL + 4;
+
+            let lastProgress = 0;
+
+            // ---- PASO 1: base del terreno + agua ----
+            for (let x = 0; x < WORLD_SIZE; x++) {
+                for (let z = 0; z < WORLD_SIZE; z++) {
+                    const dx = x - centerX;
+                    const dz = z - centerZ;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+
+                    const edgeNoise = fbm(x * 0.06, z * 0.06, 3) * 0.5 + 0.5;
+                    const effectiveRadius = maxRadius * (0.75 + edgeNoise * 0.4);
+
+                    let islandFactor = 1 - (dist / effectiveRadius);
+                    islandFactor = Math.max(0, Math.min(1, islandFactor));
+                    const shaped = islandFactor * islandFactor * (3 - 2 * islandFactor);
+                    const heightNoise = fbm(x * 0.08, z * 0.08, 4);
+
+                    let elevation = Math.floor(SEA_LEVEL - 3 + shaped * (8 + heightNoise * 5));
+
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const distToVolcano = Math.sqrt(dvx * dvx + dvz * dvz);
+                    const isVolcanoZone = distToVolcano < VOLCANO_RADIUS;
+
+                    if (isVolcanoZone) {
+                        const t = 1 - (distToVolcano / VOLCANO_RADIUS);
+                        const coneHeight = t * t * VOLCANO_HEIGHT;
+                        elevation = Math.max(elevation, Math.floor(SEA_LEVEL + coneHeight));
+                    }
+
+                    const volcanoMix = isVolcanoZone ? fbm(x * 0.25, z * 0.25, 3) : 0;
+
+                    for (let y = 0; y < elevation; y++) {
+                        let type;
+                        if (y === elevation - 1) {
+                            if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
+                                type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
+                            } else if (elevation <= BEACH_UPPER) {
+                                type = BLOCK_TYPES.SAND;
+                            } else {
+                                type = BLOCK_TYPES.GRASS;
+                            }
+                        } else if (y >= elevation - 4) {
+                            if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
+                                type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
+                            } else {
+                                type = elevation <= BEACH_UPPER ? BLOCK_TYPES.SAND : BLOCK_TYPES.DIRT;
+                            }
+                        } else {
+                            type = BLOCK_TYPES.STONE;
+                        }
+                        addBlockToWorld(x, y, z, type);
+                    }
+
+                    for (let y = elevation; y <= SEA_LEVEL; y++) {
+                        if (elevation >= BEACH_LOWER && elevation <= SEA_LEVEL) {
+                            addBlockToWorld(x, y, z, BLOCK_TYPES.SAND);
+                        } else {
+                            addBlockToWorld(x, y, z, BLOCK_TYPES.WATER, WATER_SOURCE);
+                        }
+                    }
+                }
+                if (onProgress && x - lastProgress >= 10) {
+                    lastProgress = x;
+                    onProgress(Math.floor((x / WORLD_SIZE) * 60));
+                }
+            }
+
+            // ---- PASO 2: tallar el cráter hueco ----
+            // 🔧 FIX #3: vaciar el interior del cono y colocar lava al fondo
+            const craterPeakY = SEA_LEVEL + VOLCANO_HEIGHT;
+            const craterFloorY = craterPeakY - CRATER_DEPTH;
+
+            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 2); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 2); x++) {
+                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 2); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 2); z++) {
+                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const distToCenter = Math.sqrt(dvx * dvx + dvz * dvz);
+
+                    if (distToCenter < CRATER_RADIUS) {
+                        // Dentro del cráter: vaciar desde craterFloorY hasta arriba
+                        for (let y = craterFloorY; y <= craterPeakY + 2; y++) {
+                            const b = getBlock(x, y, z);
+                            if (b) removeBlockFromWorld(x, y, z);
+                        }
+
+                        // Colocar lava en el fondo del cráter (piscina de lava)
+                        if (distToCenter < CRATER_RADIUS - 1) {
+                            for (let d = 0; d < LAVA_POOL_DEPTH; d++) {
+                                const ly = craterFloorY + d;
+                                const below = getBlock(x, ly - 1, z);
+                                if (below && isSolid(x, ly - 1, z)) {
+                                    addBlockToWorld(x, ly, z, BLOCK_TYPES.LAVA, LAVA_SOURCE);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Asegurar paredes del cráter: rellenar borde si quedó demasiado fino
+            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 1); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 1); x++) {
+                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 1); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 1); z++) {
+                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const d = Math.sqrt(dvx * dvx + dvz * dvz);
+
+                    // Anillo entre CRATER_RADIUS-1 y CRATER_RADIUS+1: asegurar muro
+                    if (d >= CRATER_RADIUS - 1 && d < CRATER_RADIUS + CONE_WALL_THICKNESS) {
+                        for (let y = craterFloorY - 2; y <= craterPeakY; y++) {
+                            if (!getBlock(x, y, z)) {
+                                const mix = fbm(x * 0.3, z * 0.3, 2);
+                                addBlockToWorld(x, y, z, mix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (onProgress) onProgress(75);
+
+            // ---- PASO 3: palmeras ----
+            for (let x = 2; x < WORLD_SIZE - 2; x++) {
+                for (let z = 2; z < WORLD_SIZE - 2; z++) {
+                    let surfaceY = -1, surfaceType = -1;
+                    for (let y = SEA_LEVEL + 6; y >= 0; y--) {
+                        const b = getBlock(x, y, z);
+                        if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                            surfaceY = y; surfaceType = b.type; break;
+                        }
+                    }
+                    if (surfaceType === BLOCK_TYPES.SAND && surfaceY >= SEA_LEVEL - 1 && surfaceY <= SEA_LEVEL + 2) {
+                        const density = hash2D(x * 0.7, z * 1.3);
+                        if (density > 0.985) {
+                            let tooClose = false;
+                            for (let ox = -2; ox <= 2 && !tooClose; ox++)
+                                for (let oz = -2; oz <= 2 && !tooClose; oz++) {
+                                    if (ox === 0 && oz === 0) continue;
+                                    for (let oy = 0; oy < 8; oy++) {
+                                        const nb = getBlock(x + ox, surfaceY + oy, z + oz);
+                                        if (nb && nb.type === BLOCK_TYPES.PALM_WOOD) { tooClose = true; break; }
+                                    }
+                                }
+                            if (!tooClose) placePalmTree(x, surfaceY + 1, z);
+                        }
+                    }
+                }
+                if (onProgress && x % 15 === 0) onProgress(75 + Math.floor((x / WORLD_SIZE) * 25));
+            }
+            if (onProgress) onProgress(100);
+        }
+
+        // ==========================================
+        // CARGA / SPAWN
+        // ==========================================
+        function findSpawnPosition() {
+            const cx = Math.floor(WORLD_SIZE / 2);
+            const cz = Math.floor(WORLD_SIZE / 2);
+            for (let radius = 0; radius < 40; radius++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dz = -radius; dz <= radius; dz++) {
+                        if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
+                        const x = cx + dx, z = cz + dz;
+                        if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                        for (let y = 40; y >= 0; y--) {
+                            const b = getBlock(x, y, z);
+                            if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                                return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
+                            }
+                        }
+                    }
+                }
+            }
+            return { x: WORLD_SIZE / 2, y: 40, z: WORLD_SIZE / 2 };
+        }
+
+        function findIslandCenter() {
+            const cx = Math.floor(WORLD_SIZE / 2) - 15;
+            const cz = Math.floor(WORLD_SIZE / 2) + 10;
+            for (let radius = 0; radius < 30; radius++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dz = -radius; dz <= radius; dz++) {
+                        if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
+                        const x = cx + dx, z = cz + dz;
+                        if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                        for (let y = 40; y >= 0; y--) {
+                            const b = getBlock(x, y, z);
+                            if (b && (b.type === BLOCK_TYPES.GRASS || b.type === BLOCK_TYPES.DIRT)) {
+                                return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
+                            }
+                        }
+                    }
+                }
+            }
+            return findSpawnPosition();
+        }
+
+        function loadOrGenerateWorld(onProgress) {
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+
+            setTimeout(() => {
+                if (hasAnySave()) {
+                    let loaded = 0;
+                    for (let cx = 0; cx < CHUNK_COUNT; cx++) {
+                        for (let cz = 0; cz < CHUNK_COUNT; cz++) {
+                            const data = loadChunkFromStorage(cx, cz);
+                            if (data) {
+                                const chunk = ensureChunk(cx, cz);
+                                for (const b of data) {
+                                    const k = getCoordKey(b.x, b.y, b.z);
+                                    blockMap.set(k, b);
+                                    chunk.blocks.set(k, b);
+                                }
+                                loaded++;
+                            }
+                            if (onProgress && (cx * CHUNK_COUNT + cz) % 10 === 0) {
+                                onProgress(Math.floor(((cx * CHUNK_COUNT + cz) / (CHUNK_COUNT * CHUNK_COUNT)) * 100));
+                            }
+                        }
+                    }
+                    if (loaded === 0) generateWorld(onProgress);
+                } else {
+                    generateWorld(onProgress);
+                }
+                for (const chunk of chunks.values()) chunk.dirty = true;
+                loading.classList.remove('active');
+                const spawn = findSpawnPosition();
+                camera.position.set(spawn.x, spawn.y, spawn.z);
+            }, 50);
+        }
+
+        // ==========================================
+        // FÍSICA DEL JUGADOR
+        // ==========================================
+        const GRAVITY = -26.0;
+        const GRAVITY_WATER = -6.0;
+        const SWIM_UP_SPEED = 5.0;
+        const SWIM_DOWN_SPEED = 5.0;
+        const BUOYANCY = 3.5;
+        const PLAYER_HEIGHT = 1.62;
+        const PLAYER_RADIUS = 0.22;
+        const velocity = new THREE.Vector3();
+        let onGround = false;
+
+        let isDead = false;
+        let deathEndTime = 0;
+
+        function collides(px, py, pz) {
+            const r = PLAYER_RADIUS;
+            const feetY = py - PLAYER_HEIGHT + 0.1;
+            const headY = py - 0.1;
+            const minX = Math.floor(px - r), maxX = Math.floor(px + r);
+            const minY = Math.floor(feetY),  maxY = Math.floor(headY);
+            const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
+            for (let bx = minX; bx <= maxX; bx++)
+                for (let by = minY; by <= maxY; by++)
+                    for (let bz = minZ; bz <= maxZ; bz++)
+                        if (isSolid(bx, by, bz)) return true;
+            return false;
+        }
+
+        function checkGround(px, py, pz) {
+            const r = PLAYER_RADIUS - 0.02;
+            const feetY = py - PLAYER_HEIGHT - 0.05;
+            const minX = Math.floor(px - r), maxX = Math.floor(px + r);
+            const checkY = Math.floor(feetY);
+            const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
+            for (let bx = minX; bx <= maxX; bx++)
+                for (let bz = minZ; bz <= maxZ; bz++)
+                    if (isSolid(bx, checkY, bz)) return checkY + 1 + PLAYER_HEIGHT;
+            return null;
+        }
+
+        function collidesWithPlayer(bx, by, bz) {
+            const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+            const r = PLAYER_RADIUS;
+            return (
+                bx >= Math.floor(px - r) && bx <= Math.floor(px + r) &&
+                by >= Math.floor(py - PLAYER_HEIGHT) && by <= Math.floor(py) &&
+                bz >= Math.floor(pz - r) && bz <= Math.floor(pz + r)
+            );
+        }
+
+        function isPlayerSwimming() {
+            const cx = Math.floor(camera.position.x);
+            const cz = Math.floor(camera.position.z);
+            const feetY = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.9);
+            const midY  = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.4);
+            const eyeY  = Math.floor(camera.position.y);
+            return isWaterAt(cx, feetY, cz) || isWaterAt(cx, midY, cz) || isWaterAt(cx, eyeY, cz);
+        }
+
+        // 🔧 FIX #1: chequeo robusto de lava. Se evalúa SIEMPRE (aunque
+        //    el jugador esté "encima" del bloque, porque la lava ya no es sólida).
+        function isPlayerInLava() {
+            const cx = Math.floor(camera.position.x);
+            const cz = Math.floor(camera.position.z);
+            // Múltiples puntos verticales del cuerpo
+            const points = [
+                camera.position.y,                     // ojos
+                camera.position.y - 0.4,               // cabeza
+                camera.position.y - PLAYER_HEIGHT * 0.5,  // torso
+                camera.position.y - PLAYER_HEIGHT * 0.9,  // pies
+                camera.position.y - PLAYER_HEIGHT       // suelo
+            ];
+            for (const py of points) {
+                if (isLavaAt(cx, Math.floor(py), cz)) return true;
+            }
+            return false;
+        }
+
+        // ==========================================
+        // MUERTE
+        // ==========================================
+        const deathScreen = document.getElementById('deathScreen');
+        const deathTimerEl = document.getElementById('deathTimer');
+        const lavaOverlay = document.getElementById('lavaOverlay');
+
+        function triggerDeath() {
+            if (isDead) return;
+            isDead = true;
+            deathEndTime = performance.now() + DEATH_DURATION_MS;
+            velocity.set(0, 0, 0);
+            deathScreen.classList.add('active');
+            lavaOverlay.classList.remove('active');
+            deathTimerEl.textContent = '5';
+        }
+
+        function respawnPlayer() {
+            const center = findIslandCenter();
+            camera.position.set(center.x, center.y, center.z);
+            velocity.set(0, 0, 0);
+            onGround = false;
+            isDead = false;
+            deathScreen.classList.remove('active');
+            scene.background = new THREE.Color(SKY_COLOR);
+            scene.fog.color.set(SKY_COLOR);
+            scene.fog.density = 0.010;
+            document.getElementById('waterOverlay').classList.remove('active');
+            lavaOverlay.classList.remove('active');
+        }
+
+        // ==========================================
+        // ERUPCIONES
+        // ==========================================
+        const eruptionWarning = document.getElementById('eruptionWarning');
+        let nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
+        let eruptionActive = false;
+
+        function triggerEruption() {
+            if (eruptionActive) return;
+            eruptionActive = true;
+            eruptionWarning.classList.add('active');
+            setTimeout(() => eruptionWarning.classList.remove('active'), 5000);
+
+            const meteorCount = 15 + Math.floor(Math.random() * 11);
+            for (let i = 0; i < meteorCount; i++) {
+                setTimeout(() => spawnLavaMeteor(), i * 250);
+            }
+            setTimeout(() => { eruptionActive = false; }, meteorCount * 250 + 2000);
+        }
+
+        function spawnLavaMeteor() {
+            let x, z, found = false;
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 55;
+                x = Math.floor(WORLD_SIZE / 2 + Math.cos(angle) * radius);
+                z = Math.floor(WORLD_SIZE / 2 + Math.sin(angle) * radius);
+                if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                for (let y = 40; y >= SEA_LEVEL; y--) {
+                    const b = getBlock(x, y, z);
+                    if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                        found = true; break;
+                    }
+                }
+                if (found) break;
+            }
+            if (!found) return;
+
+            let surfaceY = -1;
+            for (let y = 40; y >= 0; y--) {
+                const b = getBlock(x, y, z);
+                if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                    surfaceY = y + 1; break;
+                }
+            }
+            if (surfaceY < 0) return;
+
+            animateMeteorFall(x, surfaceY + 25, z, surfaceY, () => {
+                const expiresAt = performance.now() + LAVA_LIFETIME_MS;
+                addBlockToWorld(x, surfaceY, z, BLOCK_TYPES.LAVA, LAVA_SOURCE, expiresAt);
+                queueFluidUpdate(x, surfaceY, z);
+                queueFluidNeighbors(x, surfaceY, z);
+            });
+        }
+
+        function animateMeteorFall(x, startY, z, endY, onImpact) {
+            const meteorGroup = new THREE.Group();
+            const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const mat = new THREE.MeshLambertMaterial({
+                color: 0xff5722, emissive: 0xff5722, emissiveIntensity: 1.2
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x + 0.5, startY + 0.5, z + 0.5);
+            meteorGroup.add(mesh);
+            scene.add(meteorGroup);
+
+            const startTime = performance.now();
+            const duration = 800;
+
+            function step() {
+                const t = Math.min(1, (performance.now() - startTime) / duration);
+                const y = startY + (endY - startY) * t;
+                mesh.position.y = y + 0.5;
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    scene.remove(meteorGroup);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                    onImpact();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        let lastLavaCleanup = 0;
+        function cleanupExpiredLava() {
+            const now = performance.now();
+            if (now - lastLavaCleanup < 2000) return;
+            lastLavaCleanup = now;
+
+            const toRemove = [];
+            for (const [key, block] of blockMap.entries()) {
+                if (block.type === BLOCK_TYPES.LAVA && block.expiresAt && block.expiresAt <= now) {
+                    toRemove.push(key);
+                }
+            }
+            for (const key of toRemove) {
+                const [x, y, z] = key.split(',').map(Number);
+                removeBlockFromWorld(x, y, z);
+                queueFluidNeighbors(x, y, z);
+            }
+        }
+
+        // ==========================================
+        // INPUT
+        // ==========================================
+        const keys = { w: false, a: false, s: false, d: false, space: false, up: false, down: false };
+
+        document.addEventListener('keydown', (e) => {
+            if (isDead) return;
+            if (e.code === 'KeyW') keys.w = true;
+            if (e.code === 'KeyA') keys.a = true;
+            if (e.code === 'KeyS') keys.s = true;
+            if (e.code === 'KeyD') keys.d = true;
+            if (e.code === 'Space') keys.space = true;
+            if (e.code === 'ArrowUp') keys.up = true;
+            if (e.code === 'ArrowDown') keys.down = true;
+
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= HOTBAR.length) {
+                selectedSlot = num - 1;
+                updateHotbarUI();
+            }
+            if (e.code === 'Enter' && controls.isLocked) {
+                const target = getTargetBlock();
+                if (target) removeBlock(target.x, target.y, target.z);
+            }
+            // 🔧 FIX #2: tecla Q para vaciar fluidos apuntados
+            if (e.code === 'KeyQ' && controls.isLocked) {
+                const target = getTargetFluid();
+                if (target) {
+                    removeBlockFromWorld(target.x, target.y, target.z);
+                    queueFluidNeighbors(target.x, target.y, target.z);
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') keys.w = false;
+            if (e.code === 'KeyA') keys.a = false;
+            if (e.code === 'KeyS') keys.s = false;
+            if (e.code === 'KeyD') keys.d = false;
+            if (e.code === 'Space') keys.space = false;
+            if (e.code === 'ArrowUp') keys.up = false;
+            if (e.code === 'ArrowDown') keys.down = false;
+        });
+
+        window.addEventListener('wheel', (e) => {
+            if (isDead || !controls.isLocked) return;
+            selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR.length) % HOTBAR.length;
+            updateHotbarUI();
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (isDead || !controls.isLocked) return;
+            if (e.button === 0) {
+                const target = getTargetBlock();
+                if (!target) return;
+                const bx = target.x + target.normal.x;
+                const by = target.y + target.normal.y;
+                const bz = target.z + target.normal.z;
+                addBlock(bx, by, bz, HOTBAR[selectedSlot].type);
+            }
+        });
+
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // ==========================================
+        // API AÑADIR / QUITAR
+        // ==========================================
+        function addBlock(x, y, z, type) {
+            if (isDead) return;
+            const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+            const key = getCoordKey(bx, by, bz);
+            const existing = blockMap.get(key);
+
+            const isFluidType = type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
+            if (!isFluidType && collidesWithPlayer(bx, by, bz)) return;
+
+            if (existing) {
+                if (existing.type === type) return;
+                if (!isFluid(existing.type)) return;
+                removeBlockFromWorld(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            }
+
+            if (type === BLOCK_TYPES.WATER) {
+                addBlockToWorld(bx, by, bz, BLOCK_TYPES.WATER, WATER_SOURCE);
+                queueFluidUpdate(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            } else if (type === BLOCK_TYPES.LAVA) {
+                addBlockToWorld(bx, by, bz, BLOCK_TYPES.LAVA, LAVA_SOURCE);
+                queueFluidUpdate(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            } else {
+                addBlockToWorld(bx, by, bz, type);
+                queueFluidNeighbors(bx, by, bz);
+            }
+        }
+
+        function removeBlock(x, y, z) {
+            if (isDead) return false;
+            const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+            const key = getCoordKey(bx, by, bz);
+            const block = blockMap.get(key);
+            if (!block) return false;
+            // Con Enter se pueden romper sólidos, pero NO fluidos.
+            // Los fluidos se vacían con Q.
+            if (block.type === BLOCK_TYPES.WATER || block.type === BLOCK_TYPES.LAVA) return false;
+            removeBlockFromWorld(bx, by, bz);
+            queueFluidNeighbors(bx, by, bz);
+            return true;
+        }
+
+        // ==========================================
+        // RAYCASTING
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        raycaster.far = 7;
+
+        function getTargetBlock() {
+            raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+            const solidMeshes = [];
+            for (const chunk of chunks.values()) {
+                for (const child of chunk.group.children) {
+                    // Excluir agua (permite apuntar a través), incluir lava (bloquea)
+                    if (child.isInstancedMesh && !child.userData.isWater) {
+                        solidMeshes.push(child);
+                    }
+                }
+            }
+            const intersects = raycaster.intersectObjects(solidMeshes, false);
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const mesh = hit.object;
+                if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
+                    const pos = mesh.userData.blockPositions[hit.instanceId];
+                    if (pos) {
+                        const normal = hit.face.normal.clone().round();
+                        return { x: pos.x, y: pos.y, z: pos.z, normal };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 🔧 FIX #2: raycast exclusivo para fluidos (agua y lava)
+        function getTargetFluid() {
+            raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+            const fluidMeshes = [];
+            for (const chunk of chunks.values()) {
+                for (const child of chunk.group.children) {
+                    if (child.isInstancedMesh && child.userData.isFluid) {
+                        fluidMeshes.push(child);
+                    }
+                }
+            }
+            const intersects = raycaster.intersectObjects(fluidMeshes, false);
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const mesh = hit.object;
+                if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
+                    const pos = mesh.userData.blockPositions[hit.instanceId];
+                    if (pos) {
+                        return { x: pos.x, y: pos.y, z: pos.z };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // ==========================================
+        // UI HOTBAR
+        // ==========================================
+        function buildHotbarUI() {
+            const hotbar = document.getElementById('hotbar');
+            hotbar.innerHTML = '';
+            HOTBAR.forEach((slot, idx) => {
+                const el = document.createElement('div');
+                el.className = 'slot' + (idx === selectedSlot ? ' active' : '');
+                el.innerHTML = `
+                    <span class="key">${idx + 1}</span>
+                    <div class="swatch" style="background:${slot.color}"></div>
+                    <span>${slot.label}</span>
+                `;
+                el.addEventListener('click', () => {
+                    if (isDead) return;
+                    selectedSlot = idx;
+                    updateHotbarUI();
+                });
+                hotbar.appendChild(el);
+            });
+        }
+
+        function updateHotbarUI() {
+            const slots = document.querySelectorAll('.slot');
+            slots.forEach((s, i) => s.classList.toggle('active', i === selectedSlot));
+            const blockInfo = document.getElementById('blockInfo');
+            blockInfo.textContent = `Seleccionado: ${HOTBAR[selectedSlot].label}`;
+            blockInfo.classList.add('visible');
+            clearTimeout(updateHotbarUI._t);
+            updateHotbarUI._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
+        }
+        buildHotbarUI();
+
+        // ==========================================
+        // RESET
+        // ==========================================
+        document.getElementById('reset-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm("¿Resetear el mundo?")) return;
+
+            const loading = document.getElementById('loading');
+            const loadingBar = document.getElementById('loadingBar');
+            loading.classList.add('active');
+            loadingBar.style.width = '0%';
+
+            setTimeout(() => {
+                clearAllSave();
+                for (const chunk of chunks.values()) {
+                    while (chunk.group.children.length > 0) {
+                        const c = chunk.group.children[0];
+                        if (c.dispose) c.dispose();
+                        chunk.group.remove(c);
+                    }
+                    worldGroup.remove(chunk.group);
+                }
+                chunks.clear();
+                blockMap.clear();
+                fluidUpdateQueue.clear();
+
+                generateWorld((p) => { loadingBar.style.width = p + '%'; });
+                for (const chunk of chunks.values()) chunk.dirty = true;
+                processDirtyChunks(999);
+
+                const sp = findSpawnPosition();
+                camera.position.set(sp.x, sp.y, sp.z);
+                velocity.set(0, 0, 0);
+                nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
+
+                saveAllDirtyChunks(true);
+                loading.classList.remove('active');
+            }, 50);
+        });
+
+        // ==========================================
+        // BUCLE PRINCIPAL
+        // ==========================================
+        const clock = new THREE.Clock();
+        let fluidAccumulator = 0;
+        const FLUID_TICK_RATE = 0.15;
+        let saveAccumulator = 0;
+        const SAVE_TICK_RATE = 3.0;
+
+        const waterOverlay = document.getElementById('waterOverlay');
+        let overlayActive = false;
+        let hasEnteredWorld = false;
+        controls.addEventListener('lock', () => { hasEnteredWorld = true; });
+
+        function updateCounters() {
+            document.getElementById('chunkCount').textContent = chunks.size;
+            document.getElementById('blockCount').textContent = blockMap.size.toLocaleString();
+            let waterCount = 0, lavaCount = 0;
+            for (const b of blockMap.values()) {
+                if (b.type === BLOCK_TYPES.WATER) waterCount++;
+                if (b.type === BLOCK_TYPES.LAVA) lavaCount++;
+            }
+            document.getElementById('waterCount').textContent = waterCount.toLocaleString();
+            document.getElementById('lavaCount').textContent = lavaCount.toLocaleString();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const now = performance.now();
+
+            const processed = processDirtyChunks(4);
+            if (processed > 0) updateCounters();
+
+            fluidAccumulator += delta;
+            if (fluidAccumulator >= FLUID_TICK_RATE) {
+                fluidAccumulator = 0;
+                let it = 0;
+                while (tickFluids() && it < 5) it++;
+            }
+
+            cleanupExpiredLava();
+
+            saveAccumulator += delta;
+            if (saveAccumulator >= SAVE_TICK_RATE) {
+                saveAccumulator = 0;
+                saveAllDirtyChunks();
+            }
+
+            if (now >= nextEruptionTime && !isDead) {
+                triggerEruption();
+                nextEruptionTime = now + ERUPTION_INTERVAL_MS;
+            }
+
+            if (isDead) {
+                const remaining = Math.max(0, deathEndTime - now);
+                deathTimerEl.textContent = Math.ceil(remaining / 1000);
+                if (remaining <= 0) respawnPlayer();
+                renderer.render(scene, camera);
+                return;
+            }
+
+            if (controls.isLocked) {
+                // 🔧 FIX #1: chequear lava ANTES de mover, sin importar dónde esté el jugador
+                const inLava = isPlayerInLava();
+
+                // Feedback visual instantáneo
+                if (inLava) {
+                    lavaOverlay.classList.add('active');
+                    triggerDeath();
+                    renderer.render(scene, camera);
+                    return;
+                } else {
+                    lavaOverlay.classList.remove('active');
+                }
+
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                forward.y = 0; forward.normalize();
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                right.y = 0; right.normalize();
+
+                const moveX = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+                const moveZ = (keys.s ? 1 : 0) - (keys.w ? 1 : 0);
+                const moveDir = new THREE.Vector3()
+                    .addScaledVector(forward, -moveZ)
+                    .addScaledVector(right, moveX);
+                if (moveDir.lengthSq() > 0) moveDir.normalize();
+
+                const swimming = isPlayerSwimming();
+                const submerged = hasEnteredWorld && swimming;
+
+                if (submerged !== overlayActive) {
+                    overlayActive = submerged;
+                    waterOverlay.classList.toggle('active', submerged);
+                    scene.background = new THREE.Color(submerged ? UNDERWATER_COLOR : SKY_COLOR);
+                    scene.fog.color.set(submerged ? UNDERWATER_COLOR : SKY_COLOR);
+                    scene.fog.density = submerged ? 0.08 : 0.010;
+                }
+
+                const speed = swimming ? 4.5 : 7.5;
+                const accel = swimming ? 6 : 12;
+
+                velocity.x += (moveDir.x * speed - velocity.x) * accel * delta;
+                velocity.z += (moveDir.z * speed - velocity.z) * accel * delta;
+
+                if (swimming) {
+                    if (keys.up) velocity.y = SWIM_UP_SPEED;
+                    else if (keys.down) velocity.y = -SWIM_DOWN_SPEED;
+                    else velocity.y += (BUOYANCY - velocity.y) * 3 * delta;
+                    if (keys.space) velocity.y = Math.max(velocity.y, 4.0);
+                    onGround = false;
+                } else {
+                    if (keys.space && onGround) { velocity.y = 8.2; onGround = false; }
+                }
+
+                let px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+
+                const nextX = px + velocity.x * delta;
+                if (!collides(nextX, py, pz)) px = nextX; else velocity.x = 0;
+                const nextZ = pz + velocity.z * delta;
+                if (!collides(px, py, nextZ)) pz = nextZ; else velocity.z = 0;
+
+                if (swimming) {
+                    if (!keys.up && !keys.down) velocity.y += GRAVITY_WATER * delta;
+                    velocity.y *= (1 - 2.5 * delta);
+                    const nextY = py + velocity.y * delta;
+                    if (!collides(px, nextY, pz)) py = nextY; else velocity.y = 0;
+                    const g = checkGround(px, py, pz);
+                    if (g !== null && py <= g + 0.05) { py = g; velocity.y = 0; onGround = true; }
+                } else {
+                    if (!onGround) {
+                        velocity.y += GRAVITY * delta;
+                        if (velocity.y < -32) velocity.y = -32;
+                        const nextY = py + velocity.y * delta;
+                        if (velocity.y <= 0) {
+                            const g = checkGround(px, nextY, pz);
+                            if (g !== null && nextY <= g) { py = g; velocity.y = 0; onGround = true; }
+                            else py = nextY;
+                        } else {
+                            if (!collides(px, nextY, pz)) py = nextY;
+                            else velocity.y = 0;
+                        }
+                    } else {
+                        const g = checkGround(px, py, pz);
+                        if (g !== null) { py = g; velocity.y = 0; }
+                        else onGround = false;
+                    }
+                }
+
+                if (py < -10) {
+                    const sp = findSpawnPosition();
+                    px = sp.x; py = sp.y; pz = sp.z;
+                    velocity.set(0, 0, 0);
+                    onGround = false;
+                }
+
+                camera.position.set(px, py, pz);
+
+                // 🔧 FIX #1: re-chequear lava DESPUÉS de mover también
+                if (isPlayerInLava()) {
+                    lavaOverlay.classList.add('active');
+                    triggerDeath();
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // ARRANQUE
+        // ==========================================
+        const loadingBar = document.getElementById('loadingBar');
+        loadOrGenerateWorld((p) => { loadingBar.style.width = p + '%'; });
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            saveAllDirtyChunks(true);
+        });
+    </script>
+</body>
+</html>
