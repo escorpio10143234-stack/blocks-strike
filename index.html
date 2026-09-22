@@ -3,50 +3,221 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minecraft 3D - Volcán + Obsidiana + Trampilla</title>
+    <title>Minecraft 3D - Volcán Realista + Obsidiana + Trampillas</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; }
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+        }
         #canvas-container { width: 100%; height: 100%; position: relative; }
-        #waterOverlay { position: absolute; inset: 0; background: rgba(30,90,160,0.45); pointer-events: none; opacity: 0; transition: opacity .25s; z-index: 8; }
+
+        #waterOverlay {
+            position: absolute; inset: 0;
+            background: rgba(30, 90, 160, 0.45);
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.25s ease;
+            z-index: 8;
+        }
         #waterOverlay.active { opacity: 1; }
-        #lavaOverlay { position: absolute; inset: 0; background: rgba(180,40,5,0.55); pointer-events: none; opacity: 0; z-index: 9; }
+
+        #lavaOverlay {
+            position: absolute; inset: 0;
+            background: rgba(180, 40, 5, 0.55);
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.1s ease;
+            z-index: 9;
+        }
         #lavaOverlay.active { opacity: 1; }
-        #info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #fff; background: rgba(0,0,0,.75); padding: 10px 24px; border-radius: 12px; font-size: 13px; pointer-events: none; user-select: none; z-index: 10; border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(8px); }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%,-50%); pointer-events: none; z-index: 20; opacity: .85; }
-        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,.95); box-shadow: 0 0 2px rgba(0,0,0,.5); }
+
+        #info {
+            position: absolute; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff; background: rgba(0, 0, 0, 0.75);
+            padding: 10px 24px; border-radius: 12px;
+            font-size: 13px; font-weight: 500;
+            pointer-events: none; user-select: none;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 20; opacity: 0.85;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
         #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
-        #crosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
-        #blocker { position: absolute; width: 100%; height: 100%; background: rgba(10,10,15,.75); z-index: 30; display: flex; justify-content: center; align-items: center; color: white; user-select: none; backdrop-filter: blur(10px); flex-direction: column; gap: 15px; }
-        #blocker .title { font-size: 32px; font-weight: 700; cursor: pointer; }
-        #blocker .subtitle { font-size: 16px; opacity: .85; }
-        #blocker .controls-card { font-size: 13px; opacity: .75; margin-top: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); padding: 12px 20px; border-radius: 8px; line-height: 1.8; text-align: center; }
+        #crosshair::after  { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+        #blocker {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.75);
+            z-index: 30; display: flex; justify-content: center;
+            align-items: center; color: white; user-select: none;
+            backdrop-filter: blur(10px); flex-direction: column;
+            gap: 15px; transition: opacity 0.3s ease;
+        }
+        #blocker .title { font-size: 32px; font-weight: 700; letter-spacing: 1px; cursor: pointer; }
+        #blocker .subtitle { font-size: 16px; opacity: 0.85; }
+        #blocker .controls-card {
+            font-size: 13px; opacity: 0.75; margin-top: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px; border-radius: 8px;
+            line-height: 1.8; text-align: center;
+        }
         #blocker.hidden { display: none; }
-        #reset-btn { margin-top: 10px; background: #e53935; color: white; border: none; padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
-        #reset-btn:hover { background: #d32f2f; }
-        #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 15; user-select: none; background: rgba(0,0,0,.5); padding: 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(6px); }
-        .slot { width: 52px; height: 52px; background: rgba(255,255,255,.05); border: 2px solid rgba(255,255,255,.15); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-size: 9px; transition: all .15s; cursor: pointer; position: relative; }
-        .slot .swatch { width: 24px; height: 24px; border-radius: 4px; margin-bottom: 2px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.3); }
-        .slot .key { position: absolute; top: 2px; left: 4px; font-size: 9px; opacity: .6; }
-        .slot.active { border-color: #ffd54f; background: rgba(255,213,79,.15); box-shadow: 0 0 12px rgba(255,213,79,.5); transform: translateY(-4px); }
-        #blockInfo { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 12px; background: rgba(0,0,0,.6); padding: 4px 12px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 12; }
+        #reset-btn {
+            margin-top: 10px; background: #e53935; color: white;
+            border: none; padding: 8px 18px; font-size: 13px;
+            font-weight: 600; border-radius: 6px; cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        #reset-btn:hover { background: #d32f2f; transform: scale(1.03); }
+        #reset-btn:active { transform: scale(0.97); }
+
+        #hotbar {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 6px;
+            z-index: 15; user-select: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(6px);
+        }
+        .slot {
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #fff; font-size: 9px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .slot .swatch {
+            width: 24px; height: 24px;
+            border-radius: 4px; margin-bottom: 2px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
+        }
+        .slot .key {
+            position: absolute; top: 2px; left: 4px;
+            font-size: 9px; opacity: 0.6;
+        }
+        .slot.active {
+            border-color: #ffd54f;
+            background: rgba(255, 213, 79, 0.15);
+            box-shadow: 0 0 12px rgba(255, 213, 79, 0.5);
+            transform: translateY(-4px);
+        }
+
+        #blockInfo {
+            position: absolute; bottom: 90px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff; font-size: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 12px; border-radius: 6px;
+            opacity: 0; transition: opacity 0.2s ease;
+            pointer-events: none; z-index: 12;
+        }
         #blockInfo.visible { opacity: 1; }
-        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 16px; background: rgba(0,0,0,.85); padding: 20px 40px; border-radius: 12px; z-index: 40; border: 1px solid rgba(255,255,255,.2); display: none; text-align: center; }
+
+        #loading {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff; font-size: 16px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px 40px; border-radius: 12px;
+            z-index: 40;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            text-align: center;
+        }
         #loading.active { display: block; }
-        #loading .progress { margin-top: 12px; height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; width: 240px; }
-        #loading .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#4caf50,#8bc34a); transition: width .15s; }
-        #deathScreen { position: absolute; inset: 0; background: rgba(80,10,10,.75); z-index: 35; display: none; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; backdrop-filter: blur(4px); }
+        #loading .progress {
+            margin-top: 12px; height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; width: 240px;
+        }
+        #loading .progress-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.15s ease;
+        }
+
+        #deathScreen {
+            position: absolute; inset: 0;
+            background: rgba(80, 10, 10, 0.75);
+            z-index: 35;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
         #deathScreen.active { display: flex; }
-        #deathScreen .message { color: #fff; font-size: 40px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 20px rgba(255,50,50,.9), 0 4px 10px rgba(0,0,0,.8); margin-bottom: 30px; text-align: center; }
-        #deathScreen .timer { color: #ff2020; font-size: 120px; font-weight: 900; text-shadow: 0 0 30px rgba(255,0,0,1), 0 6px 20px rgba(0,0,0,.9); font-family: 'Courier New', monospace; line-height: 1; }
-        #deathScreen .sub { color: #ffcccc; font-size: 16px; margin-top: 20px; }
-        #eruptionWarning { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 18px; font-weight: 700; background: rgba(180,40,10,.85); padding: 10px 24px; border-radius: 10px; border: 2px solid #ff5722; box-shadow: 0 0 25px rgba(255,87,34,.7); z-index: 15; opacity: 0; transition: opacity .5s; pointer-events: none; }
+        #deathScreen .message {
+            color: #fff;
+            font-size: 40px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255, 50, 50, 0.9), 0 4px 10px rgba(0,0,0,0.8);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        #deathScreen .timer {
+            color: #ff2020;
+            font-size: 120px;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 1), 0 6px 20px rgba(0,0,0,0.9);
+            font-family: 'Courier New', monospace;
+            line-height: 1;
+        }
+        #deathScreen .sub {
+            color: #ffcccc;
+            font-size: 16px;
+            margin-top: 20px;
+            letter-spacing: 1px;
+        }
+
+        #eruptionWarning {
+            position: absolute; top: 80px; left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            background: rgba(180, 40, 10, 0.85);
+            padding: 10px 24px;
+            border-radius: 10px;
+            border: 2px solid #ff5722;
+            box-shadow: 0 0 25px rgba(255, 87, 34, 0.7);
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
         #eruptionWarning.active { opacity: 1; }
     </style>
 </head>
 <body>
     <div id="canvas-container">
-        <div id="loading">🌋 Generando isla...<div class="progress"><div class="progress-bar" id="loadingBar"></div></div></div>
+        <div id="loading">
+            🌋 Generando isla...
+            <div class="progress"><div class="progress-bar" id="loadingBar"></div></div>
+        </div>
 
         <div id="blocker">
             <div class="title" id="enter-btn">⛏️ HAZ CLIC AQUÍ PARA ENTRAR</div>
@@ -55,8 +226,8 @@
                 <b>WASD</b>: Moverse &nbsp;|&nbsp; <b>ESPACIO</b>: Saltar<br>
                 <b>↑ / ↓</b>: Subir / Sumergirse (en agua)<br>
                 <b>1-7</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
-                <b>ENTER</b>: Romper sólidos &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar agua/lava<br>
-                <b style="color:#ff5722">⚠️ La lava mata</b> &nbsp;|&nbsp; <b style="color:#9c27b0">🔮 Lava+Agua = Obsidiana</b>
+                <b>ENTER</b>: Romper sólidos &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar fluidos<br>
+                <b style="color:#ff5722">⚠️ La lava mata — pisar trampilla te hace caer</b>
             </div>
             <button id="reset-btn">🔄 Resetear Mundo</button>
         </div>
@@ -69,1386 +240,1611 @@
             <div class="sub">Reapareciendo en el centro de la isla...</div>
         </div>
         <div id="eruptionWarning">🌋 ¡ERUPCIÓN VOLCÁNICA EN CURSO! 🌋</div>
+
         <div id="crosshair"></div>
-        <div id="info">🎮 Chunks: <span id="chunkCount">0</span> | Bloques: <span id="blockCount">0</span> | Agua: <span id="waterCount">0</span> | Lava: <span id="lavaCount">0</span> | Obsidiana: <span id="obsidianCount">0</span></div>
+        <div id="info">🎮 Chunks: <span id="chunkCount">0</span> &nbsp;|&nbsp; Bloques: <span id="blockCount">0</span> &nbsp;|&nbsp; Agua: <span id="waterCount">0</span> &nbsp;|&nbsp; Lava: <span id="lavaCount">0</span> &nbsp;|&nbsp; Obsidiana: <span id="obsidianCount">0</span></div>
         <div id="blockInfo"></div>
+
         <div id="hotbar"></div>
     </div>
 
     <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
         }
-    }
     </script>
 
     <script type="module">
-    import * as THREE from 'three';
-    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-    // ==========================================
-    // CONSTANTES
-    // ==========================================
-    const WORLD_SIZE = 150;
-    const CHUNK_SIZE = 16;
-    const CHUNK_COUNT = Math.ceil(WORLD_SIZE / CHUNK_SIZE);
-    const SEA_LEVEL = 8;
-    const ERUPTION_INTERVAL_MS = 30 * 60 * 1000;
-    const LAVA_LIFETIME_MS = 5 * 60 * 1000;
-    const DEATH_DURATION_MS = 5000;
-    const FIRST_ERUPTION_DELAY_MS = 60000;
+        const WORLD_SIZE = 150;
+        const CHUNK_SIZE = 16;
+        const CHUNK_COUNT = Math.ceil(WORLD_SIZE / CHUNK_SIZE);
+        const SEA_LEVEL = 8;
 
-    const VOLCANO_X = WORLD_SIZE / 2 + 30;
-    const VOLCANO_Z = WORLD_SIZE / 2 - 20;
-    const VOLCANO_RADIUS = 32;
-    const VOLCANO_HEIGHT = 40;
-    const CRATER_RADIUS = 5;
-    const CRATER_DEPTH = 3;
+        const ERUPTION_INTERVAL_MS = 30 * 60 * 1000;
+        const LAVA_LIFETIME_MS = 5 * 60 * 1000;
+        const DEATH_DURATION_MS = 5000;
+        const FIRST_ERUPTION_DELAY_MS = 60 * 1000;
+        const TRAPDOOR_OPEN_DURATION_MS = 1500;   // ✅ tiempo que la trampilla queda abierta
 
-    // ==========================================
-    // ESCENA
-    // ==========================================
-    const container = document.getElementById('canvas-container');
-    const scene = new THREE.Scene();
-    const SKY_COLOR = 0x87ceeb;
-    const UNDERWATER_COLOR = 0x1e5aa0;
-    scene.background = new THREE.Color(SKY_COLOR);
-    scene.fog = new THREE.FogExp2(SKY_COLOR, 0.010);
+        // ==========================================
+        // ESCENA
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const SKY_COLOR = 0x87ceeb;
+        const UNDERWATER_COLOR = 0x1e5aa0;
+        scene.background = new THREE.Color(SKY_COLOR);
+        scene.fog = new THREE.FogExp2(SKY_COLOR, 0.010);
 
-    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
+        const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
 
-    // ==========================================
-    // CONTROLES
-    // ==========================================
-    const controls = new PointerLockControls(camera, document.body);
-    const blocker = document.getElementById('blocker');
-    blocker.addEventListener('click', (e) => {
-        if (e.target.id === 'reset-btn') return;
-        controls.lock();
-    });
-    controls.addEventListener('lock', () => blocker.classList.add('hidden'));
-    controls.addEventListener('unlock', () => blocker.classList.remove('hidden'));
+        // ==========================================
+        // CONTROLES
+        // ==========================================
+        const controls = new PointerLockControls(camera, document.body);
+        const blocker = document.getElementById('blocker');
+        blocker.addEventListener('click', (e) => {
+            if (e.target.id === 'reset-btn') return;
+            controls.lock();
+        });
+        controls.addEventListener('lock', () => blocker.classList.add('hidden'));
+        controls.addEventListener('unlock', () => blocker.classList.remove('hidden'));
 
-    // ==========================================
-    // LUZ
-    // ==========================================
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    scene.add(new THREE.HemisphereLight(0x87ceeb, 0x553311, 0.4));
+        // ==========================================
+        // LUZ
+        // ==========================================
+        scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+        scene.add(new THREE.HemisphereLight(0x87ceeb, 0x553311, 0.4));
 
-    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.15);
-    sunLight.position.set(80, 120, 40);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.set(2048, 2048);
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 300;
-    sunLight.shadow.camera.left = -100;
-    sunLight.shadow.camera.right = 100;
-    sunLight.shadow.camera.top = 100;
-    sunLight.shadow.camera.bottom = -100;
-    sunLight.shadow.bias = -0.0005;
-    scene.add(sunLight);
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.15);
+        sunLight.position.set(80, 120, 40);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.set(2048, 2048);
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 300;
+        sunLight.shadow.camera.left = -100;
+        sunLight.shadow.camera.right = 100;
+        sunLight.shadow.camera.top = 100;
+        sunLight.shadow.camera.bottom = -100;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
 
-    // ==========================================
-    // TEXTURAS
-    // ==========================================
-    function generateBlockTexture(baseColor, borderColor, noiseAmount = 150) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64; canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(0, 0, 64, 64);
-        for (let i = 0; i < noiseAmount; i++) {
-            const x = Math.floor(Math.random() * 64);
-            const y = Math.floor(Math.random() * 64);
-            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-            ctx.fillRect(x, y, 2, 2);
+        // ==========================================
+        // TEXTURAS
+        // ==========================================
+        function generateBlockTexture(baseColor, borderColor, noiseAmount = 150) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < noiseAmount; i++) {
+                const x = Math.floor(Math.random() * 64);
+                const y = Math.floor(Math.random() * 64);
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+                ctx.fillRect(x, y, 2, 2);
+            }
+            if (borderColor) {
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(2, 2, 60, 60);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
         }
-        if (borderColor) {
-            ctx.strokeStyle = borderColor;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(2, 2, 60, 60);
+
+        function generateWaterTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 64);
+            grad.addColorStop(0, 'rgba(64, 164, 223, 0.85)');
+            grad.addColorStop(1, 'rgba(28, 100, 180, 0.9)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(x, y, 6, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
         }
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.magFilter = THREE.NearestFilter;
-        tex.minFilter = THREE.NearestFilter;
-        return tex;
-    }
 
-    function generateWaterTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64; canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 0, 64);
-        grad.addColorStop(0, 'rgba(64,164,223,0.85)');
-        grad.addColorStop(1, 'rgba(28,100,180,0.9)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 64, 64);
-        for (let i = 0; i < 40; i++) {
-            const x = Math.random() * 64;
-            const y = Math.random() * 64;
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
-            ctx.fillRect(x, y, 6, 2);
-        }
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.magFilter = THREE.NearestFilter;
-        tex.minFilter = THREE.NearestFilter;
-        return tex;
-    }
-
-    function generateObsidianTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64; canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#2a1a3a';
-        ctx.fillRect(0, 0, 64, 64);
-        for (let i = 0; i < 60; i++) {
-            const x = Math.floor(Math.random() * 64);
-            const y = Math.floor(Math.random() * 64);
-            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(90,50,130,0.4)' : 'rgba(20,10,30,0.5)';
-            ctx.fillRect(x, y, 3, 1);
-        }
-        ctx.strokeStyle = '#1a0f2a';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(2, 2, 60, 60);
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.magFilter = THREE.NearestFilter;
-        tex.minFilter = THREE.NearestFilter;
-        return tex;
-    }
-
-    // ==========================================
-    // TIPOS DE BLOQUE
-    // ==========================================
-    const BLOCK_TYPES = { AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, WATER: 4, LAVA: 5, OBSIDIAN: 6, TRAPDOOR: 7 };
-
-    const materialMap = {
-        [BLOCK_TYPES.GRASS]:    new THREE.MeshLambertMaterial({ map: generateBlockTexture('#689f38', '#33691e') }),
-        [BLOCK_TYPES.DIRT]:     new THREE.MeshLambertMaterial({ map: generateBlockTexture('#795548', '#4e342e') }),
-        [BLOCK_TYPES.STONE]:    new THREE.MeshLambertMaterial({ map: generateBlockTexture('#9e9e9e', '#424242') }),
-        [BLOCK_TYPES.WATER]:    new THREE.MeshLambertMaterial({ map: generateWaterTexture(), transparent: true, opacity: 0.75, depthWrite: false }),
-        [BLOCK_TYPES.LAVA]:     new THREE.MeshLambertMaterial({ map: generateBlockTexture('#ff5722', '#bf360c'), emissive: 0xff5722, emissiveIntensity: 0.9 }),
-        [BLOCK_TYPES.OBSIDIAN]: new THREE.MeshLambertMaterial({ map: generateObsidianTexture(), emissive: 0x3a1a5a, emissiveIntensity: 0.15 }),
-        [BLOCK_TYPES.TRAPDOOR]: new THREE.MeshLambertMaterial({ map: generateBlockTexture('#8d6e4a', '#5d4037'), transparent: true, opacity: 0.95 })
-    };
-
-    const HOTBAR = [
-        { type: BLOCK_TYPES.GRASS,    label: 'Pasto',     color: '#689f38' },
-        { type: BLOCK_TYPES.DIRT,     label: 'Tierra',    color: '#795548' },
-        { type: BLOCK_TYPES.STONE,    label: 'Piedra',    color: '#9e9e9e' },
-        { type: BLOCK_TYPES.WATER,    label: 'Agua',      color: '#40a4df' },
-        { type: BLOCK_TYPES.LAVA,     label: 'Lava',      color: '#ff5722' },
-        { type: BLOCK_TYPES.OBSIDIAN, label: 'Obsidiana', color: '#2a1a3a' },
-        { type: BLOCK_TYPES.TRAPDOOR, label: 'Trampilla', color: '#8d6e4a' }
-    ];
-    let selectedSlot = 0;
-
-    const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const trapdoorGeometry = new THREE.BoxGeometry(1, 0.15, 1);
-
-    // ==========================================
-    // MUNDO / CHUNKS
-    // ==========================================
-    const blockMap = new Map();
-    const getCoordKey = (x, y, z) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
-    const getBlock = (x, y, z) => blockMap.get(getCoordKey(x, y, z));
-
-    const isSolid = (x, y, z) => {
-        const b = blockMap.get(getCoordKey(x, y, z));
-        if (!b) return false;
-        if (b.type === BLOCK_TYPES.WATER || b.type === BLOCK_TYPES.LAVA) return false;
-        if (b.type === BLOCK_TYPES.TRAPDOOR && b.opened) return false;
-        return true;
-    };
-
-    const isWaterAt = (x, y, z) => {
-        const b = blockMap.get(getCoordKey(x, y, z));
-        return b && b.type === BLOCK_TYPES.WATER;
-    };
-
-    const isLavaAt = (x, y, z) => {
-        const b = blockMap.get(getCoordKey(x, y, z));
-        return b && b.type === BLOCK_TYPES.LAVA;
-    };
-
-    const isFluid = (type) => type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
-
-    const chunks = new Map();
-    const worldGroup = new THREE.Group();
-    scene.add(worldGroup);
-
-    function chunkKey(cx, cz) { return `${cx},${cz}`; }
-
-    function getChunkOfBlock(bx, bz) {
-        return { cx: Math.floor(bx / CHUNK_SIZE), cz: Math.floor(bz / CHUNK_SIZE) };
-    }
-
-    function ensureChunk(cx, cz) {
-        const key = chunkKey(cx, cz);
-        let chunk = chunks.get(key);
-        if (!chunk) {
-            const group = new THREE.Group();
-            group.userData.cx = cx;
-            group.userData.cz = cz;
-            worldGroup.add(group);
-            chunk = { cx, cz, group, dirty: true, needsSave: false, blocks: new Map() };
-            chunks.set(key, chunk);
-        }
-        return chunk;
-    }
-
-    function getChunkForBlock(bx, by, bz) {
-        const { cx, cz } = getChunkOfBlock(bx, bz);
-        if (cx < 0 || cz < 0 || cx >= CHUNK_COUNT || cz >= CHUNK_COUNT) return null;
-        return ensureChunk(cx, cz);
-    }
-
-    function markChunkDirty(bx, bz) {
-        const { cx, cz } = getChunkOfBlock(bx, bz);
-        const lx = bx - cx * CHUNK_SIZE;
-        const lz = bz - cz * CHUNK_SIZE;
-        const edge = lx === 0 || lx === CHUNK_SIZE - 1 || lz === 0 || lz === CHUNK_SIZE - 1;
-        const markOne = (x, z) => {
-            if (x < 0 || z < 0 || x >= CHUNK_COUNT || z >= CHUNK_COUNT) return;
-            const c = chunks.get(chunkKey(x, z));
-            if (c) c.dirty = true;
+        // ==========================================
+        // BLOQUES (solo 7 tipos)
+        // ==========================================
+        const BLOCK_TYPES = {
+            AIR: 0,
+            GRASS: 1,
+            DIRT: 2,
+            STONE: 3,
+            WATER: 4,
+            LAVA: 5,
+            OBSIDIAN: 6,     // ✅ nuevo
+            TRAPDOOR: 7      // ✅ nuevo
         };
-        markOne(cx, cz);
-        if (edge) { markOne(cx-1,cz); markOne(cx+1,cz); markOne(cx,cz-1); markOne(cx,cz+1); }
-    }
 
-    const dummy = new THREE.Object3D();
-    const trapdoorQuatClosed = new THREE.Quaternion();
-    const trapdoorQuatOpen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-    const identityQuat = new THREE.Quaternion();
+        const materialMap = {
+            [BLOCK_TYPES.GRASS]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#689f38', '#33691e')
+            }),
+            [BLOCK_TYPES.DIRT]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#795548', '#4e342e')
+            }),
+            [BLOCK_TYPES.STONE]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#9e9e9e', '#424242')
+            }),
+            [BLOCK_TYPES.WATER]: new THREE.MeshLambertMaterial({
+                map: generateWaterTexture(),
+                transparent: true, opacity: 0.75, depthWrite: false
+            }),
+            [BLOCK_TYPES.LAVA]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#ff5722', '#bf360c'),
+                emissive: 0xff5722, emissiveIntensity: 0.9
+            }),
+            // ✅ OBSIDIANA: morado oscuro con tinte metálico
+            [BLOCK_TYPES.OBSIDIAN]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#3d1a5c', '#1a0a2e'),
+                emissive: 0x2a1040,
+                emissiveIntensity: 0.25
+            }),
+            // ✅ TRAMPILLA: café plano, semi-transparente al abrirse
+            [BLOCK_TYPES.TRAPDOOR]: new THREE.MeshLambertMaterial({
+                map: generateBlockTexture('#8d6e4a', '#5d4037'),
+                transparent: true,
+                opacity: 1
+            })
+        };
 
-    function rebuildChunk(chunk) {
-        while (chunk.group.children.length > 0) {
-            const child = chunk.group.children[0];
-            if (child.dispose) child.dispose();
-            chunk.group.remove(child);
+        const HOTBAR = [
+            { type: BLOCK_TYPES.GRASS,    label: 'Pasto',     color: '#689f38' },
+            { type: BLOCK_TYPES.DIRT,     label: 'Tierra',    color: '#795548' },
+            { type: BLOCK_TYPES.STONE,    label: 'Piedra',    color: '#9e9e9e' },
+            { type: BLOCK_TYPES.WATER,    label: 'Agua',      color: '#40a4df' },
+            { type: BLOCK_TYPES.LAVA,     label: 'Lava',      color: '#ff5722' },
+            { type: BLOCK_TYPES.OBSIDIAN, label: 'Obsidiana', color: '#3d1a5c' },
+            { type: BLOCK_TYPES.TRAPDOOR, label: 'Trampilla', color: '#8d6e4a' }
+        ];
+        let selectedSlot = 0;
+
+        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+        // ✅ Geometría plana para la trampilla (mitad de altura)
+        const trapdoorGeometry = new THREE.BoxGeometry(1, 0.15, 1);
+
+        // ==========================================
+        // MUNDO / CHUNKS
+        // ==========================================
+        const blockMap = new Map();
+        const getCoordKey = (x, y, z) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+        const getBlock = (x, y, z) => blockMap.get(getCoordKey(x, y, z));
+
+        const isSolid = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            if (!b) return false;
+            if (b.type === BLOCK_TYPES.WATER || b.type === BLOCK_TYPES.LAVA) return false;
+            // ✅ Trampilla abierta = no sólida
+            if (b.type === BLOCK_TYPES.TRAPDOOR && b.isOpen) return false;
+            return true;
+        };
+
+        const isWaterAt = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            return b && b.type === BLOCK_TYPES.WATER;
+        };
+        const isLavaAt = (x, y, z) => {
+            const b = blockMap.get(getCoordKey(x, y, z));
+            return b && b.type === BLOCK_TYPES.LAVA;
+        };
+
+        const chunks = new Map();
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        function chunkKey(cx, cz) { return `${cx},${cz}`; }
+        function getChunkOfBlock(bx, bz) {
+            return { cx: Math.floor(bx / CHUNK_SIZE), cz: Math.floor(bz / CHUNK_SIZE) };
         }
-        const buckets = {};
-        for (const t of Object.values(BLOCK_TYPES)) {
-            if (t === BLOCK_TYPES.AIR) continue;
-            buckets[t] = [];
+        function ensureChunk(cx, cz) {
+            const key = chunkKey(cx, cz);
+            let chunk = chunks.get(key);
+            if (!chunk) {
+                const group = new THREE.Group();
+                group.userData.cx = cx;
+                group.userData.cz = cz;
+                worldGroup.add(group);
+                chunk = { cx, cz, group, dirty: true, needsSave: false, blocks: new Map() };
+                chunks.set(key, chunk);
+            }
+            return chunk;
         }
-        for (const data of chunk.blocks.values()) {
-            if (buckets[data.type]) buckets[data.type].push(data);
+        function getChunkForBlock(bx, by, bz) {
+            const { cx, cz } = getChunkOfBlock(bx, bz);
+            if (cx < 0 || cz < 0 || cx >= CHUNK_COUNT || cz >= CHUNK_COUNT) return null;
+            return ensureChunk(cx, cz);
         }
-        for (const [typeStr, list] of Object.entries(buckets)) {
-            if (list.length === 0) continue;
-            const type = Number(typeStr);
-            const mat = materialMap[type];
-            const isWater = type === BLOCK_TYPES.WATER;
-            const isLava = type === BLOCK_TYPES.LAVA;
-            const isTrapdoor = type === BLOCK_TYPES.TRAPDOOR;
-
-            const geo = isTrapdoor ? trapdoorGeometry : blockGeometry;
-            const mesh = new THREE.InstancedMesh(geo, mat, list.length);
-            mesh.castShadow = !isWater && !isLava && !isTrapdoor;
-            mesh.receiveShadow = !isWater && !isLava;
-            mesh.userData.isWater = isWater;
-            mesh.userData.isLava = isLava;
-            mesh.userData.isTrapdoor = isTrapdoor;
-            mesh.userData.isFluid = isWater || isLava;
-
-            const positions = [];
-            list.forEach((data, idx) => {
-                let yOffset = 0.5;
-                let quat = identityQuat;
-
-                if (isWater || isLava) {
-                    const lvl = data.level ?? (isLava ? 5 : 7);
-                    const max = isLava ? 5 : 7;
-                    yOffset = 0.5 - (1 - Math.min(lvl, max) / max) * 0.35;
-                } else if (isTrapdoor) {
-                    if (data.opened) { yOffset = 0.5; quat = trapdoorQuatOpen; }
-                    else { yOffset = 0.925; quat = trapdoorQuatClosed; }
-                }
-
-                dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
-                dummy.quaternion.copy(quat);
-                dummy.updateMatrix();
-                mesh.setMatrixAt(idx, dummy.matrix);
-                positions.push({ x: data.x, y: data.y, z: data.z });
-            });
-            mesh.instanceMatrix.needsUpdate = true;
-            mesh.userData.blockPositions = positions;
-            chunk.group.add(mesh);
+        function markChunkDirty(bx, bz) {
+            const { cx, cz } = getChunkOfBlock(bx, bz);
+            const lx = bx - cx * CHUNK_SIZE;
+            const lz = bz - cz * CHUNK_SIZE;
+            const edge = lx === 0 || lx === CHUNK_SIZE - 1 || lz === 0 || lz === CHUNK_SIZE - 1;
+            const markOne = (x, z) => {
+                if (x < 0 || z < 0 || x >= CHUNK_COUNT || z >= CHUNK_COUNT) return;
+                const c = chunks.get(chunkKey(x, z));
+                if (c) c.dirty = true;
+            };
+            markOne(cx, cz);
+            if (edge) { markOne(cx-1,cz); markOne(cx+1,cz); markOne(cx,cz-1); markOne(cx,cz+1); }
         }
-        chunk.dirty = false;
-    }
 
-    function processDirtyChunks(maxPerFrame = 4) {
-        let processed = 0;
-        for (const chunk of chunks.values()) {
-            if (processed >= maxPerFrame) break;
-            if (chunk.dirty) { rebuildChunk(chunk); processed++; }
+        const dummy = new THREE.Object3D();
+
+        function rebuildChunk(chunk) {
+            while (chunk.group.children.length > 0) {
+                const child = chunk.group.children[0];
+                if (child.dispose) child.dispose();
+                chunk.group.remove(child);
+            }
+            const buckets = {};
+            for (const t of Object.values(BLOCK_TYPES)) {
+                if (t === BLOCK_TYPES.AIR) continue;
+                buckets[t] = [];
+            }
+            for (const data of chunk.blocks.values()) {
+                if (buckets[data.type]) buckets[data.type].push(data);
+            }
+            for (const [typeStr, list] of Object.entries(buckets)) {
+                if (list.length === 0) continue;
+                const type = Number(typeStr);
+                const mat = materialMap[type];
+                const isWater = type === BLOCK_TYPES.WATER;
+                const isLava = type === BLOCK_TYPES.LAVA;
+                const isTrapdoor = type === BLOCK_TYPES.TRAPDOOR;
+
+                // ✅ La trampilla usa geometría plana
+                const geo = isTrapdoor ? trapdoorGeometry : blockGeometry;
+
+                const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+                mesh.castShadow = !isWater && !isLava && !isTrapdoor;
+                mesh.receiveShadow = !isWater && !isLava;
+                mesh.userData.isWater = isWater;
+                mesh.userData.isLava = isLava;
+                mesh.userData.isFluid = isWater || isLava;
+                mesh.userData.isTrapdoor = isTrapdoor;
+
+                const positions = [];
+                list.forEach((data, idx) => {
+                    let yOffset = 0.5;
+                    if (isWater || isLava) {
+                        const lvl = data.level ?? 7;
+                        const max = isLava ? 5 : 7;
+                        yOffset = 0.5 - (1 - Math.min(lvl, max) / max) * 0.35;
+                    } else if (isTrapdoor) {
+                        // ✅ La trampilla queda a la mitad inferior del bloque
+                        // Cuando está abierta, se desplaza ligeramente hacia abajo
+                        yOffset = data.isOpen ? 0.08 : 0.15;
+                    }
+
+                    // Si la trampilla está abierta, reducimos su escala visualmente
+                    if (isTrapdoor && data.isOpen) {
+                        dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
+                        dummy.scale.set(1, 0.3, 1);
+                        dummy.rotation.set(0, 0, 0);
+                    } else {
+                        dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
+                        dummy.scale.set(1, 1, 1);
+                        dummy.rotation.set(0, 0, 0);
+                    }
+
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(idx, dummy.matrix);
+                    positions.push({ x: data.x, y: data.y, z: data.z });
+                });
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.userData.blockPositions = positions;
+                chunk.group.add(mesh);
+            }
+            chunk.dirty = false;
         }
-        return processed;
-    }
 
-    // ==========================================
-    // GUARDADO
-    // ==========================================
-    const SAVE_KEY_PREFIX = 'MCN_V8_CHUNK_';
-    const SAVE_META_KEY = 'MCN_V8_META';
-    const SAVE_VERSION = 4;
-
-    function saveChunk(chunk) {
-        const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
-        const data = Array.from(chunk.blocks.values());
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-            chunk.needsSave = false;
-        } catch (e) { console.warn('No se pudo guardar chunk:', e); }
-    }
-    function saveAllDirtyChunks(force = false) {
-        for (const chunk of chunks.values()) {
-            if (chunk.needsSave || force) saveChunk(chunk);
+        function processDirtyChunks(maxPerFrame = 4) {
+            let processed = 0;
+            for (const chunk of chunks.values()) {
+                if (processed >= maxPerFrame) break;
+                if (chunk.dirty) { rebuildChunk(chunk); processed++; }
+            }
+            return processed;
         }
-        try {
-            localStorage.setItem(SAVE_META_KEY, JSON.stringify({ version: SAVE_VERSION, worldSize: WORLD_SIZE }));
-        } catch (e) {}
-    }
-    function loadChunkFromStorage(cx, cz) {
-        const raw = localStorage.getItem(SAVE_KEY_PREFIX + chunkKey(cx, cz));
-        if (!raw) return null;
-        try { return JSON.parse(raw); } catch (e) { return null; }
-    }
-    function hasAnySave() {
-        const meta = localStorage.getItem(SAVE_META_KEY);
-        if (!meta) return false;
-        try {
-            const m = JSON.parse(meta);
-            return m.version === SAVE_VERSION && m.worldSize === WORLD_SIZE;
-        } catch (e) { return false; }
-    }
-    function clearAllSave() {
-        const toRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && (k.startsWith(SAVE_KEY_PREFIX) || k === SAVE_META_KEY)) toRemove.push(k);
+
+        // ==========================================
+        // GUARDADO
+        // ==========================================
+        const SAVE_KEY_PREFIX = 'MCN_V8_CHUNK_';
+        const SAVE_META_KEY = 'MCN_V8_META';
+        const SAVE_VERSION = 4;
+
+        function saveChunk(chunk) {
+            const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
+            const data = Array.from(chunk.blocks.values());
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+                chunk.needsSave = false;
+            } catch (e) {
+                console.warn(`No se pudo guardar chunk ${chunk.cx},${chunk.cz}:`, e);
+            }
         }
-        toRemove.forEach(k => localStorage.removeItem(k));
-    }
+        function saveAllDirtyChunks(force = false) {
+            for (const chunk of chunks.values()) {
+                if (chunk.needsSave || force) saveChunk(chunk);
+            }
+            try {
+                localStorage.setItem(SAVE_META_KEY, JSON.stringify({
+                    version: SAVE_VERSION, worldSize: WORLD_SIZE, chunks: chunks.size
+                }));
+            } catch (e) {}
+        }
+        function loadChunkFromStorage(cx, cz) {
+            const raw = localStorage.getItem(SAVE_KEY_PREFIX + chunkKey(cx, cz));
+            if (!raw) return null;
+            try { return JSON.parse(raw); } catch (e) { return null; }
+        }
+        function hasAnySave() {
+            const meta = localStorage.getItem(SAVE_META_KEY);
+            if (!meta) return false;
+            try {
+                const m = JSON.parse(meta);
+                return m.version === SAVE_VERSION && m.worldSize === WORLD_SIZE;
+            } catch (e) { return false; }
+        }
+        function clearAllSave() {
+            const toRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && (k.startsWith(SAVE_KEY_PREFIX) || k === SAVE_META_KEY)) toRemove.push(k);
+            }
+            toRemove.forEach(k => localStorage.removeItem(k));
+        }
 
-    // ==========================================
-    // AÑADIR / QUITAR BLOQUES
-    // ==========================================
-    function addBlockToWorld(bx, by, bz, type, level, expiresAt) {
-        const chunk = getChunkForBlock(bx, by, bz);
-        if (!chunk) return false;
-        const key = getCoordKey(bx, by, bz);
-        if (blockMap.has(key)) return false;
+        // ==========================================
+        // AÑADIR / QUITAR BLOQUES
+        // ==========================================
+        // ✅ Contador global para asignar sourceId únicos a cada fuente de lava
+        let nextLavaSourceId = 1;
 
-        const data = { x: bx, y: by, z: bz, type };
-        if (level !== undefined) data.level = level;
-        if (expiresAt !== undefined) data.expiresAt = expiresAt;
-        if (type === BLOCK_TYPES.TRAPDOOR) data.opened = false;
+        function addBlockToWorld(bx, by, bz, type, opts = {}) {
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (!chunk) return false;
+            const key = getCoordKey(bx, by, bz);
+            if (blockMap.has(key)) return false;
 
-        blockMap.set(key, data);
-        chunk.blocks.set(key, data);
-        markChunkDirty(bx, bz);
-        chunk.needsSave = true;
-        return true;
-    }
+            const data = { x: bx, y: by, z: bz, type };
+            if (opts.level !== undefined) data.level = opts.level;
+            if (opts.expiresAt !== undefined) data.expiresAt = opts.expiresAt;
+            if (opts.sourceId !== undefined) data.sourceId = opts.sourceId;
+            if (opts.isOpen !== undefined) data.isOpen = opts.isOpen;
 
-    function removeBlockFromWorld(bx, by, bz) {
-        const key = getCoordKey(bx, by, bz);
-        if (!blockMap.has(key)) return false;
-        blockMap.delete(key);
-        const chunk = getChunkForBlock(bx, by, bz);
-        if (chunk) {
-            chunk.blocks.delete(key);
+            blockMap.set(key, data);
+            chunk.blocks.set(key, data);
             markChunkDirty(bx, bz);
             chunk.needsSave = true;
+            return true;
         }
-        return true;
-    }
 
-    // ==========================================
-    // FÍSICA DE FLUIDOS + OBSIDIANA
-    // ==========================================
-    const WATER_SOURCE = 7;
-    const WATER_MIN_LEVEL = 1;
-    const LAVA_SOURCE = 5;
-    const LAVA_MIN_LEVEL = 1;
-
-    let fluidUpdateQueue = new Set();
-    let fluidProcessing = false;
-
-    function queueFluidUpdate(x, y, z) { fluidUpdateQueue.add(getCoordKey(x, y, z)); }
-    function queueFluidNeighbors(x, y, z) {
-        queueFluidUpdate(x+1,y,z); queueFluidUpdate(x-1,y,z);
-        queueFluidUpdate(x,y+1,z); queueFluidUpdate(x,y-1,z);
-        queueFluidUpdate(x,y,z+1); queueFluidUpdate(x,y,z-1);
-    }
-
-    function getFluidMaxLevel(type) { return type === BLOCK_TYPES.LAVA ? LAVA_SOURCE : WATER_SOURCE; }
-    function getFluidMinLevel(type) { return type === BLOCK_TYPES.LAVA ? LAVA_MIN_LEVEL : WATER_MIN_LEVEL; }
-
-    function hasOppositeFluid(x, y, z, type) {
-        const opposite = type === BLOCK_TYPES.LAVA ? BLOCK_TYPES.WATER : BLOCK_TYPES.LAVA;
-        const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
-        for (const [dx, dy, dz] of dirs) {
-            const b = getBlock(x+dx, y+dy, z+dz);
-            if (b && b.type === opposite) return true;
+        function removeBlockFromWorld(bx, by, bz) {
+            const key = getCoordKey(bx, by, bz);
+            if (!blockMap.has(key)) return false;
+            blockMap.delete(key);
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (chunk) {
+                chunk.blocks.delete(key);
+                markChunkDirty(bx, bz);
+                chunk.needsSave = true;
+            }
+            return true;
         }
-        return false;
-    }
 
-    function convertLavaFlowToObsidian(sx, sy, sz) {
-        const visited = new Set();
-        const queue = [[sx, sy, sz]];
-        const toConvert = [];
-        while (queue.length > 0) {
-            const [x, y, z] = queue.shift();
+        // ✅ Convierte un bloque (sin importar qué era) en obsidiana
+        function convertToObsidian(bx, by, bz) {
+            const key = getCoordKey(bx, by, bz);
+            const block = blockMap.get(key);
+            if (!block) return;
+            block.type = BLOCK_TYPES.OBSIDIAN;
+            delete block.level;
+            delete block.sourceId;
+            delete block.expiresAt;
+
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (chunk) {
+                chunk.blocks.set(key, block);
+                markChunkDirty(bx, bz);
+                chunk.needsSave = true;
+            }
+        }
+
+        // ✅ Convierte TODA una red de lava (mismo sourceId) en obsidiana
+        function convertLavaNetworkToObsidian(sourceId) {
+            const toConvert = [];
+            for (const [key, b] of blockMap.entries()) {
+                if (b.type === BLOCK_TYPES.LAVA && b.sourceId === sourceId) {
+                    toConvert.push(key);
+                }
+            }
+            for (const key of toConvert) {
+                const [x, y, z] = key.split(',').map(Number);
+                convertToObsidian(x, y, z);
+            }
+            return toConvert.length;
+        }
+
+        // ==========================================
+        // FÍSICA DE FLUIDOS (con conversiones lava↔agua)
+        // ==========================================
+        const WATER_SOURCE = 7;
+        const WATER_MIN_LEVEL = 1;
+        const LAVA_SOURCE = 5;
+        const LAVA_MIN_LEVEL = 1;
+
+        let fluidUpdateQueue = new Set();
+        let fluidProcessing = false;
+
+        function queueFluidUpdate(x, y, z) { fluidUpdateQueue.add(getCoordKey(x, y, z)); }
+        function queueFluidNeighbors(x, y, z) {
+            queueFluidUpdate(x+1,y,z); queueFluidUpdate(x-1,y,z);
+            queueFluidUpdate(x,y+1,z); queueFluidUpdate(x,y-1,z);
+            queueFluidUpdate(x,y,z+1); queueFluidUpdate(x,y,z-1);
+        }
+
+        function isFluid(type) {
+            return type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
+        }
+        function getFluidMaxLevel(type) {
+            return type === BLOCK_TYPES.LAVA ? LAVA_SOURCE : WATER_SOURCE;
+        }
+        function getFluidMinLevel(type) {
+            return type === BLOCK_TYPES.LAVA ? LAVA_MIN_LEVEL : WATER_MIN_LEVEL;
+        }
+
+        /**
+         * ✅ Movimiento de fluido con DETECCIÓN DE CONTACTO lava↔agua.
+         * Retorna:
+         *   - 'ok': movimiento normal
+         *   - 'lava-into-water': lava entró en agua (convertir toda la red)
+         *   - 'water-into-lava': agua entró en lava (convertir solo esa celda)
+         */
+        function tryFluidMove(fromX, fromY, fromZ, toX, toY, toZ, type, level) {
+            const toKey = getCoordKey(toX, toY, toZ);
+            const target = blockMap.get(toKey);
+
+            // Celda vacía → colocar fluido
+            if (!target) {
+                return { result: 'ok', action: 'place' };
+            }
+
+            // Mismo fluido → comparar niveles
+            if (target.type === type) {
+                if ((target.level || 0) < level) {
+                    return { result: 'ok', action: 'upgrade' };
+                }
+                return { result: 'noop' };
+            }
+
+            // ✅ CONTACTO CRUZADO
+            if (type === BLOCK_TYPES.LAVA && target.type === BLOCK_TYPES.WATER) {
+                // Lava toca agua → toda la red de lava se vuelve obsidiana
+                return { result: 'lava-into-water' };
+            }
+            if (type === BLOCK_TYPES.WATER && target.type === BLOCK_TYPES.LAVA) {
+                // Agua toca lava → SOLO la celda de lava se vuelve obsidiana
+                return { result: 'water-into-lava', targetKey: toKey };
+            }
+
+            // Sólido → no se puede mover
+            return { result: 'blocked' };
+        }
+
+        function setFluidAt(x, y, z, type, level, sourceId) {
             const key = getCoordKey(x, y, z);
-            if (visited.has(key)) continue;
-            visited.add(key);
-            const b = getBlock(x, y, z);
-            if (!b || b.type !== BLOCK_TYPES.LAVA) continue;
-            toConvert.push([x, y, z]);
-            queue.push([x+1,y,z], [x-1,y,z], [x,y+1,z], [x,y-1,z], [x,y,z+1], [x,y,z-1]);
-        }
-        for (const [x, y, z] of toConvert) {
-            removeBlockFromWorld(x, y, z);
-            addBlockToWorld(x, y, z, BLOCK_TYPES.OBSIDIAN);
+            const existing = blockMap.get(key);
+            if (existing && existing.type !== type) return;
+
+            const max = getFluidMaxLevel(type);
+            const newLevel = existing
+                ? Math.max(existing.level || 0, Math.min(level, max))
+                : Math.min(level, max);
+
+            if (existing) {
+                existing.level = newLevel;
+                if (sourceId !== undefined) existing.sourceId = sourceId;
+                const chunk = getChunkForBlock(x, y, z);
+                if (chunk) {
+                    chunk.blocks.set(key, existing);
+                    markChunkDirty(x, z);
+                    chunk.needsSave = true;
+                }
+            } else {
+                addBlockToWorld(x, y, z, type, { level: newLevel, sourceId });
+            }
+            queueFluidUpdate(x, y, z);
             queueFluidNeighbors(x, y, z);
         }
-        return toConvert.length;
-    }
 
-    function setFluidAt(x, y, z, type, level) {
-        const key = getCoordKey(x, y, z);
-        const existing = blockMap.get(key);
-        if (existing && existing.type !== type) return;
-        const max = getFluidMaxLevel(type);
-        const newLevel = existing ? Math.max(existing.level || 0, Math.min(level, max)) : Math.min(level, max);
-        if (existing) {
-            existing.level = newLevel;
-            const chunk = getChunkForBlock(x, y, z);
-            if (chunk) { chunk.blocks.set(key, existing); markChunkDirty(x, z); chunk.needsSave = true; }
-        } else {
-            addBlockToWorld(x, y, z, type, newLevel);
-        }
-        queueFluidUpdate(x, y, z);
-        queueFluidNeighbors(x, y, z);
-    }
-
-    function hasFluidSource(x, y, z, type) {
-        const self = getBlock(x, y, z);
-        if (!self) return false;
-        const selfLevel = self.level || 0;
-        const neighbors = [[x,y+1,z],[x+1,y,z],[x-1,y,z],[x,y,z+1],[x,y,z-1]];
-        for (const [nx, ny, nz] of neighbors) {
-            const n = getBlock(nx, ny, nz);
-            if (n && n.type === type) {
-                if (ny > y) return true;
-                if (n.level > selfLevel) return true;
-            }
-        }
-        return false;
-    }
-
-    function tickFluids() {
-        if (fluidUpdateQueue.size === 0 || fluidProcessing) return false;
-        fluidProcessing = true;
-        const batch = Array.from(fluidUpdateQueue);
-        fluidUpdateQueue.clear();
-        let changed = false;
-
-        for (const key of batch) {
-            const [x, y, z] = key.split(',').map(Number);
-            const block = getBlock(x, y, z);
-            if (!block || !isFluid(block.type)) continue;
-            const type = block.type;
-            const minLevel = getFluidMinLevel(type);
-            const maxLevel = getFluidMaxLevel(type);
-            const isLava = type === BLOCK_TYPES.LAVA;
-
-            // REACCIÓN OBSIDIANA
-            if (hasOppositeFluid(x, y, z, type)) {
-                if (isLava) {
-                    convertLavaFlowToObsidian(x, y, z);
-                } else {
-                    removeBlockFromWorld(x, y, z);
-                    addBlockToWorld(x, y, z, BLOCK_TYPES.OBSIDIAN);
-                    queueFluidNeighbors(x, y, z);
+        function hasFluidSource(x, y, z, type) {
+            const self = getBlock(x, y, z);
+            if (!self) return false;
+            const selfLevel = self.level || 0;
+            const neighbors = [
+                [x, y+1, z], [x+1, y, z], [x-1, y, z], [x, y, z+1], [x, y, z-1]
+            ];
+            for (const [nx, ny, nz] of neighbors) {
+                const n = getBlock(nx, ny, nz);
+                if (n && n.type === type) {
+                    if (ny > y) return true;
+                    if (n.level > selfLevel) return true;
                 }
-                changed = true;
-                continue;
             }
+            return false;
+        }
 
-            const below = getBlock(x, y - 1, z);
-            if (!below || below.type === type) {
-                if (!below || below.level < maxLevel) {
-                    setFluidAt(x, y - 1, z, type, maxLevel);
+        function tickFluids() {
+            if (fluidUpdateQueue.size === 0 || fluidProcessing) return false;
+            fluidProcessing = true;
+            const batch = Array.from(fluidUpdateQueue);
+            fluidUpdateQueue.clear();
+            let changed = false;
+
+            for (const key of batch) {
+                const [x, y, z] = key.split(',').map(Number);
+                const block = getBlock(x, y, z);
+                if (!block || !isFluid(block.type)) continue;
+
+                const type = block.type;
+                const minLevel = getFluidMinLevel(type);
+                const maxLevel = getFluidMaxLevel(type);
+                const isLava = type === BLOCK_TYPES.LAVA;
+                const sourceId = block.sourceId;
+
+                // --- 1) CAÍDA HACIA ABAJO ---
+                const belowY = y - 1;
+                const below = getBlock(x, belowY, z);
+                const moveBelow = tryFluidMove(x, y, z, x, belowY, z, type, maxLevel);
+
+                if (moveBelow.result === 'ok') {
+                    if (moveBelow.action === 'place') {
+                        setFluidAt(x, belowY, z, type, maxLevel, sourceId);
+                        changed = true;
+                    } else if (moveBelow.action === 'upgrade') {
+                        below.level = maxLevel;
+                        below.sourceId = sourceId;
+                        const ch = getChunkForBlock(x, belowY, z);
+                        if (ch) { ch.blocks.set(getCoordKey(x, belowY, z), below); markChunkDirty(x, z); ch.needsSave = true; }
+                        queueFluidUpdate(x, belowY, z);
+                        changed = true;
+                    }
+                } else if (moveBelow.result === 'lava-into-water' && isLava) {
+                    // ✅ Toda la red se vuelve obsidiana
+                    convertLavaNetworkToObsidian(sourceId);
+                    queueFluidNeighbors(x, y, z);
+                    changed = true;
+                    continue;
+                } else if (moveBelow.result === 'water-into-lava' && !isLava) {
+                    // ✅ Solo esa celda se vuelve obsidiana
+                    const [tx, ty, tz] = moveBelow.targetKey.split(',').map(Number);
+                    convertToObsidian(tx, ty, tz);
+                    queueFluidNeighbors(tx, ty, tz);
                     changed = true;
                 }
-            } else if (!isFluid(below.type) && below.type !== BLOCK_TYPES.AIR) {
-                if (block.level > minLevel) {
-                    const nl = block.level - 1;
+
+                // Re-obtener el bloque (puede haber cambiado)
+                const stillBlock = getBlock(x, y, z);
+                if (!stillBlock || stillBlock.type !== type) continue;
+
+                // --- 2) PROPAGACIÓN LATERAL ---
+                if (stillBlock.level > minLevel) {
+                    const nl = stillBlock.level - 1;
                     for (const [dx, dz] of [[1,0],[-1,0],[0,1],[0,-1]]) {
                         const nx = x + dx, nz = z + dz;
-                        const nb = getBlock(nx, y, nz);
-                        if (!nb || nb.type === BLOCK_TYPES.AIR) {
-                            setFluidAt(nx, y, nz, type, nl);
-                            changed = true;
-                        } else if (nb.type === type && nb.level < nl) {
-                            nb.level = nl;
-                            const ch = getChunkForBlock(nx, y, nz);
-                            if (ch) { ch.blocks.set(getCoordKey(nx, y, nz), nb); markChunkDirty(nx, nz); ch.needsSave = true; }
-                            queueFluidUpdate(nx, y, nz);
-                            changed = true;
-                        }
-                    }
-                }
-                if (!isLava && block.level <= minLevel && !hasFluidSource(x, y, z, type)) {
-                    removeBlockFromWorld(x, y, z);
-                    queueFluidNeighbors(x, y, z);
-                    changed = true;
-                }
-            }
-        }
-        fluidProcessing = false;
-        return changed;
-    }
+                        const moveSide = tryFluidMove(x, y, z, nx, y, nz, type, nl);
 
-    // ==========================================
-    // GENERACIÓN DEL MUNDO
-    // ==========================================
-    function hash2D(x, z) {
-        const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
-        return n - Math.floor(n);
-    }
-    function smoothNoise(x, z) {
-        const xi = Math.floor(x), zi = Math.floor(z);
-        const xf = x - xi, zf = z - zi;
-        const u = (1 - Math.cos(xf * Math.PI)) * 0.5;
-        const v = (1 - Math.cos(zf * Math.PI)) * 0.5;
-        const a = hash2D(xi, zi), b = hash2D(xi + 1, zi);
-        const c = hash2D(xi, zi + 1), d = hash2D(xi + 1, zi + 1);
-        return a*(1-u)*(1-v) + b*u*(1-v) + c*(1-u)*v + d*u*v;
-    }
-    function fbm(x, z, octaves = 4) {
-        let v = 0, a = 1, f = 1, n = 0;
-        for (let i = 0; i < octaves; i++) {
-            v += smoothNoise(x*f, z*f) * a;
-            n += a; a *= 0.5; f *= 2;
-        }
-        return v / n;
-    }
-
-    function generateWorld(onProgress) {
-        const centerX = WORLD_SIZE / 2;
-        const centerZ = WORLD_SIZE / 2;
-        const maxRadius = WORLD_SIZE * 0.44;
-        const BEACH_LOWER = SEA_LEVEL - 1;
-        const BEACH_UPPER = SEA_LEVEL + 4;
-
-        let lastProgress = 0;
-
-        for (let x = 0; x < WORLD_SIZE; x++) {
-            for (let z = 0; z < WORLD_SIZE; z++) {
-                const dx = x - centerX;
-                const dz = z - centerZ;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                const edgeNoise = fbm(x * 0.06, z * 0.06, 3) * 0.5 + 0.5;
-                const effectiveRadius = maxRadius * (0.75 + edgeNoise * 0.4);
-
-                let islandFactor = 1 - (dist / effectiveRadius);
-                islandFactor = Math.max(0, Math.min(1, islandFactor));
-                const shaped = islandFactor * islandFactor * (3 - 2 * islandFactor);
-                const heightNoise = fbm(x * 0.08, z * 0.08, 4);
-                let elevation = Math.floor(SEA_LEVEL - 3 + shaped * (8 + heightNoise * 5));
-
-                // VOLCÁN
-                const dvx = x - VOLCANO_X;
-                const dvz = z - VOLCANO_Z;
-                const distToVolcano = Math.sqrt(dvx * dvx + dvz * dvz);
-                const isVolcanoZone = distToVolcano < VOLCANO_RADIUS;
-
-                if (isVolcanoZone) {
-                    const t = 1 - (distToVolcano / VOLCANO_RADIUS);
-                    const profile = Math.pow(t, 1.3);
-                    const surfaceNoise = fbm(x * 0.18, z * 0.18, 3) - 0.5;
-                    const noiseHeight = surfaceNoise * 4 * t;
-                    let volcanoHeight = profile * VOLCANO_HEIGHT + noiseHeight;
-                    if (distToVolcano < CRATER_RADIUS) {
-                        const craterFactor = 1 - (distToVolcano / CRATER_RADIUS);
-                        volcanoHeight -= craterFactor * CRATER_DEPTH;
-                    }
-                    elevation = Math.max(elevation, Math.floor(SEA_LEVEL + volcanoHeight));
-                }
-
-                const volcanoMix = isVolcanoZone ? fbm(x * 0.22, z * 0.22, 3) : 0;
-                const inCraterPool = isVolcanoZone && distToVolcano < CRATER_RADIUS - 1;
-                const craterSurfaceY = Math.floor(SEA_LEVEL + VOLCANO_HEIGHT - CRATER_DEPTH);
-
-                for (let y = 0; y < elevation; y++) {
-                    let type;
-                    if (inCraterPool && y === elevation - 1 && elevation <= craterSurfaceY + 2) {
-                        type = BLOCK_TYPES.LAVA;
-                    } else if (y === elevation - 1) {
-                        if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                            type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
-                        } else if (elevation <= BEACH_UPPER) {
-                            type = BLOCK_TYPES.DIRT;
-                        } else {
-                            type = BLOCK_TYPES.GRASS;
-                        }
-                    } else if (y >= elevation - 4) {
-                        if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                            type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
-                        } else {
-                            type = BLOCK_TYPES.DIRT;
-                        }
-                    } else {
-                        type = BLOCK_TYPES.STONE;
-                    }
-                    addBlockToWorld(x, y, z, type);
-                }
-
-                // Relleno de agua hasta el nivel del mar
-                for (let y = elevation; y <= SEA_LEVEL; y++) {
-                    if (elevation >= BEACH_LOWER && elevation <= SEA_LEVEL) {
-                        addBlockToWorld(x, y, z, BLOCK_TYPES.DIRT);
-                    } else {
-                        addBlockToWorld(x, y, z, BLOCK_TYPES.WATER, WATER_SOURCE);
-                    }
-                }
-            }
-            if (onProgress && x - lastProgress >= 10) {
-                lastProgress = x;
-                onProgress(Math.floor((x / WORLD_SIZE) * 100));
-            }
-        }
-        if (onProgress) onProgress(100);
-    }
-
-    // ==========================================
-    // SPAWN
-    // ==========================================
-    function findSpawnPosition() {
-        const cx = Math.floor(WORLD_SIZE / 2);
-        const cz = Math.floor(WORLD_SIZE / 2);
-        for (let radius = 0; radius < 40; radius++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-                for (let dz = -radius; dz <= radius; dz++) {
-                    if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
-                    const x = cx + dx, z = cz + dz;
-                    if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
-                    for (let y = 40; y >= 0; y--) {
-                        const b = getBlock(x, y, z);
-                        if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
-                            return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
-                        }
-                    }
-                }
-            }
-        }
-        return { x: WORLD_SIZE / 2, y: 40, z: WORLD_SIZE / 2 };
-    }
-
-    function findIslandCenter() {
-        const cx = Math.floor(WORLD_SIZE / 2) - 15;
-        const cz = Math.floor(WORLD_SIZE / 2) + 10;
-        for (let radius = 0; radius < 30; radius++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-                for (let dz = -radius; dz <= radius; dz++) {
-                    if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
-                    const x = cx + dx, z = cz + dz;
-                    if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
-                    for (let y = 40; y >= 0; y--) {
-                        const b = getBlock(x, y, z);
-                        if (b && (b.type === BLOCK_TYPES.GRASS || b.type === BLOCK_TYPES.DIRT)) {
-                            return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
-                        }
-                    }
-                }
-            }
-        }
-        return findSpawnPosition();
-    }
-
-    function loadOrGenerateWorld(onProgress) {
-        const loading = document.getElementById('loading');
-        loading.classList.add('active');
-        setTimeout(() => {
-            if (hasAnySave()) {
-                let loaded = 0;
-                for (let cx = 0; cx < CHUNK_COUNT; cx++) {
-                    for (let cz = 0; cz < CHUNK_COUNT; cz++) {
-                        const data = loadChunkFromStorage(cx, cz);
-                        if (data) {
-                            const chunk = ensureChunk(cx, cz);
-                            for (const b of data) {
-                                const k = getCoordKey(b.x, b.y, b.z);
-                                blockMap.set(k, b);
-                                chunk.blocks.set(k, b);
+                        if (moveSide.result === 'ok') {
+                            if (moveSide.action === 'place') {
+                                setFluidAt(nx, y, nz, type, nl, sourceId);
+                                changed = true;
+                            } else if (moveSide.action === 'upgrade') {
+                                const n = getBlock(nx, y, nz);
+                                if (n) {
+                                    n.level = nl;
+                                    n.sourceId = sourceId;
+                                    const ch = getChunkForBlock(nx, y, nz);
+                                    if (ch) { ch.blocks.set(getCoordKey(nx, y, nz), n); markChunkDirty(nx, nz); ch.needsSave = true; }
+                                    queueFluidUpdate(nx, y, nz);
+                                    changed = true;
+                                }
                             }
-                            loaded++;
+                        } else if (moveSide.result === 'lava-into-water' && isLava) {
+                            convertLavaNetworkToObsidian(sourceId);
+                            queueFluidNeighbors(x, y, z);
+                            changed = true;
+                            break;
+                        } else if (moveSide.result === 'water-into-lava' && !isLava) {
+                            const [tx, ty, tz] = moveSide.targetKey.split(',').map(Number);
+                            convertToObsidian(tx, ty, tz);
+                            queueFluidNeighbors(tx, ty, tz);
+                            changed = true;
+                        }
+                    }
+
+                    // Evaporación del agua
+                    const finalBlock = getBlock(x, y, z);
+                    if (finalBlock && finalBlock.type === BLOCK_TYPES.WATER &&
+                        finalBlock.level <= minLevel && !hasFluidSource(x, y, z, BLOCK_TYPES.WATER)) {
+                        removeBlockFromWorld(x, y, z);
+                        queueFluidNeighbors(x, y, z);
+                        changed = true;
+                        continue;
+                    }
+                }
+            }
+            fluidProcessing = false;
+            return changed;
+        }
+
+        // ==========================================
+        // TRAMPILLAS
+        // ==========================================
+        // ✅ Tick para cerrar trampillas abiertas después de un tiempo
+        function tickTrapdoors() {
+            const now = performance.now();
+            for (const b of blockMap.values()) {
+                if (b.type === BLOCK_TYPES.TRAPDOOR && b.isOpen && b.closeAt && now >= b.closeAt) {
+                    b.isOpen = false;
+                    delete b.closeAt;
+                    const chunk = getChunkForBlock(b.x, b.y, b.z);
+                    if (chunk) {
+                        chunk.blocks.set(getCoordKey(b.x, b.y, b.z), b);
+                        markChunkDirty(b.x, b.z);
+                        chunk.needsSave = true;
+                    }
+                }
+            }
+        }
+
+        // ✅ Activa una trampilla (se abre 1.5s y luego se cierra)
+        function triggerTrapdoor(bx, by, bz) {
+            const key = getCoordKey(bx, by, bz);
+            const block = blockMap.get(key);
+            if (!block || block.type !== BLOCK_TYPES.TRAPDOOR) return false;
+            if (block.isOpen) return false;   // ya está abierta
+
+            block.isOpen = true;
+            block.closeAt = performance.now() + TRAPDOOR_OPEN_DURATION_MS;
+
+            const chunk = getChunkForBlock(bx, by, bz);
+            if (chunk) {
+                chunk.blocks.set(key, block);
+                markChunkDirty(bx, bz);
+                chunk.needsSave = true;
+            }
+            return true;
+        }
+
+        // ✅ Detecta si el jugador está pisando alguna trampilla
+        function checkTrapdoorUnderPlayer(px, py, pz) {
+            const r = PLAYER_RADIUS;
+            const feetY = Math.floor(py - PLAYER_HEIGHT - 0.05);
+            const minX = Math.floor(px - r), maxX = Math.floor(px + r);
+            const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
+
+            for (let bx = minX; bx <= maxX; bx++) {
+                for (let bz = minZ; bz <= maxZ; bz++) {
+                    const key = getCoordKey(bx, feetY, bz);
+                    const b = blockMap.get(key);
+                    if (b && b.type === BLOCK_TYPES.TRAPDOOR && !b.isOpen) {
+                        // ✅ Además: verificar que el jugador esté DESCENDIENDO o quieto
+                        //    encima (no saltando hacia arriba)
+                        if (velocity.y <= 0.5) {
+                            triggerTrapdoor(bx, feetY, bz);
                         }
                     }
                 }
-                if (loaded === 0) generateWorld(onProgress);
-            } else {
-                generateWorld(onProgress);
             }
-            for (const chunk of chunks.values()) chunk.dirty = true;
-            loading.classList.remove('active');
-            const spawn = findSpawnPosition();
-            camera.position.set(spawn.x, spawn.y, spawn.z);
-        }, 50);
-    }
+        }
 
-    // ==========================================
-    // FÍSICA DEL JUGADOR
-    // ==========================================
-    const GRAVITY = -26.0;
-    const GRAVITY_WATER = -6.0;
-    const SWIM_UP_SPEED = 5.0;
-    const SWIM_DOWN_SPEED = 5.0;
-    const BUOYANCY = 3.5;
-    const PLAYER_HEIGHT = 1.62;
-    const PLAYER_RADIUS = 0.22;
-    const velocity = new THREE.Vector3();
-    let onGround = false;
+        // ==========================================
+        // GENERACIÓN DEL MUNDO (volcán realista)
+        // ==========================================
+        function hash2D(x, z) {
+            const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
+            return n - Math.floor(n);
+        }
+        function smoothNoise(x, z) {
+            const xi = Math.floor(x), zi = Math.floor(z);
+            const xf = x - xi, zf = z - zi;
+            const u = (1 - Math.cos(xf * Math.PI)) * 0.5;
+            const v = (1 - Math.cos(zf * Math.PI)) * 0.5;
+            const a = hash2D(xi, zi);
+            const b = hash2D(xi + 1, zi);
+            const c = hash2D(xi, zi + 1);
+            const d = hash2D(xi + 1, zi + 1);
+            return a*(1-u)*(1-v) + b*u*(1-v) + c*(1-u)*v + d*u*v;
+        }
+        function fbm(x, z, octaves = 4) {
+            let v = 0, a = 1, f = 1, n = 0;
+            for (let i = 0; i < octaves; i++) {
+                v += smoothNoise(x*f, z*f) * a;
+                n += a; a *= 0.5; f *= 2;
+            }
+            return v / n;
+        }
 
-    let isDead = false;
-    let deathEndTime = 0;
+        // ✅ Parámetros del volcán (realista)
+        const VOLCANO_X = WORLD_SIZE / 2 + 30;
+        const VOLCANO_Z = WORLD_SIZE / 2 - 20;
+        const VOLCANO_RADIUS = 34;
+        const VOLCANO_HEIGHT = 38;
+        const CRATER_RADIUS = 5;   // pequeño, natural
+        const CRATER_DEPTH = 4;    // poco profundo
 
-    function collides(px, py, pz) {
-        const r = PLAYER_RADIUS;
-        const feetY = py - PLAYER_HEIGHT + 0.1;
-        const headY = py - 0.1;
-        const minX = Math.floor(px - r), maxX = Math.floor(px + r);
-        const minY = Math.floor(feetY),  maxY = Math.floor(headY);
-        const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
-        for (let bx = minX; bx <= maxX; bx++)
-            for (let by = minY; by <= maxY; by++)
+        function generateWorld(onProgress) {
+            const centerX = WORLD_SIZE / 2;
+            const centerZ = WORLD_SIZE / 2;
+            const maxRadius = WORLD_SIZE * 0.44;
+            const BEACH_LOWER = SEA_LEVEL - 1;
+            const BEACH_UPPER = SEA_LEVEL + 4;
+
+            let lastProgress = 0;
+
+            for (let x = 0; x < WORLD_SIZE; x++) {
+                for (let z = 0; z < WORLD_SIZE; z++) {
+                    const dx = x - centerX;
+                    const dz = z - centerZ;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+
+                    const edgeNoise = fbm(x * 0.06, z * 0.06, 3) * 0.5 + 0.5;
+                    const effectiveRadius = maxRadius * (0.75 + edgeNoise * 0.4);
+
+                    let islandFactor = 1 - (dist / effectiveRadius);
+                    islandFactor = Math.max(0, Math.min(1, islandFactor));
+                    const shaped = islandFactor * islandFactor * (3 - 2 * islandFactor);
+                    const heightNoise = fbm(x * 0.08, z * 0.08, 4);
+
+                    let elevation = Math.floor(SEA_LEVEL - 3 + shaped * (8 + heightNoise * 5));
+
+                    // ✅ Volcán: cono natural con ruido en la ladera
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const distToVolcano = Math.sqrt(dvx * dvx + dvz * dvz);
+
+                    if (distToVolcano < VOLCANO_RADIUS) {
+                        const t = 1 - (distToVolcano / VOLCANO_RADIUS);
+                        // ✅ Curva más realista: t^1.5 da un cono con base suave
+                        let cone = Math.pow(t, 1.5) * VOLCANO_HEIGHT;
+                        // ✅ Ruido en la ladera para que no sea liso
+                        const slopeNoise = (fbm(x * 0.15, z * 0.15, 3) - 0.5) * 3.5;
+                        cone += slopeNoise * t;   // menos ruido cerca de la cima
+                        elevation = Math.max(elevation, Math.floor(SEA_LEVEL + cone));
+                    }
+
+                    const isVolcanoZone = distToVolcano < VOLCANO_RADIUS;
+
+                    for (let y = 0; y < elevation; y++) {
+                        let type;
+                        const isCraterTop = isVolcanoZone && distToVolcano < CRATER_RADIUS && y === elevation - 1;
+
+                        if (isCraterTop) {
+                            type = BLOCK_TYPES.LAVA;
+                        } else if (y === elevation - 1) {
+                            // ✅ Superficie: dentro del volcán, piedra; fuera, pasto/tierra
+                            if (isVolcanoZone && elevation > SEA_LEVEL + 5) {
+                                // Mezcla piedra/tierra con predominancia de piedra arriba
+                                const mix = fbm(x * 0.3, z * 0.3, 2);
+                                const stoneBias = Math.min(1, (elevation - SEA_LEVEL) / 20);
+                                type = mix > 0.5 - stoneBias * 0.4 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
+                            } else if (elevation <= BEACH_UPPER) {
+                                type = BLOCK_TYPES.DIRT;
+                            } else {
+                                type = BLOCK_TYPES.GRASS;
+                            }
+                        } else if (y >= elevation - 4) {
+                            if (isVolcanoZone && elevation > SEA_LEVEL + 5) {
+                                type = BLOCK_TYPES.STONE;
+                            } else {
+                                type = elevation <= BEACH_UPPER ? BLOCK_TYPES.DIRT : BLOCK_TYPES.DIRT;
+                            }
+                        } else {
+                            type = BLOCK_TYPES.STONE;
+                        }
+                        addBlockToWorld(x, y, z, type);
+                    }
+
+                    // Agua / fondo
+                    for (let y = elevation; y <= SEA_LEVEL; y++) {
+                        if (elevation >= BEACH_LOWER && elevation <= SEA_LEVEL) {
+                            addBlockToWorld(x, y, z, BLOCK_TYPES.DIRT);
+                        } else {
+                            addBlockToWorld(x, y, z, BLOCK_TYPES.WATER, { level: WATER_SOURCE });
+                        }
+                    }
+                }
+                if (onProgress && x - lastProgress >= 10) {
+                    lastProgress = x;
+                    onProgress(Math.floor((x / WORLD_SIZE) * 80));
+                }
+            }
+
+            // ✅ TALLAR CRÁTER: vaciar y poner lava al fondo
+            const craterPeakY = SEA_LEVEL + VOLCANO_HEIGHT;
+            const craterFloorY = craterPeakY - CRATER_DEPTH;
+
+            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 2); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 2); x++) {
+                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 2); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 2); z++) {
+                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
+                    const dvx = x - VOLCANO_X;
+                    const dvz = z - VOLCANO_Z;
+                    const d = Math.sqrt(dvx * dvx + dvz * dvz);
+
+                    if (d < CRATER_RADIUS) {
+                        // Vaciar hasta el fondo del cráter
+                        for (let y = craterFloorY; y <= craterPeakY + 2; y++) {
+                            if (getBlock(x, y, z)) removeBlockFromWorld(x, y, z);
+                        }
+                        // Lava en el fondo (fuente permanente, sourceId nuevo)
+                        if (d < CRATER_RADIUS - 1) {
+                            const srcId = nextLavaSourceId++;
+                            addBlockToWorld(x, craterFloorY, z, BLOCK_TYPES.LAVA, {
+                                level: LAVA_SOURCE, sourceId: srcId
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (onProgress) onProgress(100);
+        }
+
+        // ==========================================
+        // CARGA / SPAWN
+        // ==========================================
+        function findSpawnPosition() {
+            const cx = Math.floor(WORLD_SIZE / 2);
+            const cz = Math.floor(WORLD_SIZE / 2);
+            for (let radius = 0; radius < 40; radius++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dz = -radius; dz <= radius; dz++) {
+                        if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
+                        const x = cx + dx, z = cz + dz;
+                        if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                        for (let y = 40; y >= 0; y--) {
+                            const b = getBlock(x, y, z);
+                            if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                                return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
+                            }
+                        }
+                    }
+                }
+            }
+            return { x: WORLD_SIZE / 2, y: 40, z: WORLD_SIZE / 2 };
+        }
+
+        function findIslandCenter() {
+            const cx = Math.floor(WORLD_SIZE / 2) - 15;
+            const cz = Math.floor(WORLD_SIZE / 2) + 10;
+            for (let radius = 0; radius < 30; radius++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    for (let dz = -radius; dz <= radius; dz++) {
+                        if (Math.abs(dx) !== radius && Math.abs(dz) !== radius) continue;
+                        const x = cx + dx, z = cz + dz;
+                        if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                        for (let y = 40; y >= 0; y--) {
+                            const b = getBlock(x, y, z);
+                            if (b && (b.type === BLOCK_TYPES.GRASS || b.type === BLOCK_TYPES.DIRT)) {
+                                return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
+                            }
+                        }
+                    }
+                }
+            }
+            return findSpawnPosition();
+        }
+
+        function loadOrGenerateWorld(onProgress) {
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+
+            setTimeout(() => {
+                if (hasAnySave()) {
+                    let loaded = 0;
+                    for (let cx = 0; cx < CHUNK_COUNT; cx++) {
+                        for (let cz = 0; cz < CHUNK_COUNT; cz++) {
+                            const data = loadChunkFromStorage(cx, cz);
+                            if (data) {
+                                const chunk = ensureChunk(cx, cz);
+                                for (const b of data) {
+                                    const k = getCoordKey(b.x, b.y, b.z);
+                                    blockMap.set(k, b);
+                                    chunk.blocks.set(k, b);
+                                    if (b.type === BLOCK_TYPES.LAVA && b.sourceId >= nextLavaSourceId) {
+                                        nextLavaSourceId = b.sourceId + 1;
+                                    }
+                                }
+                                loaded++;
+                            }
+                            if (onProgress && (cx * CHUNK_COUNT + cz) % 10 === 0) {
+                                onProgress(Math.floor(((cx * CHUNK_COUNT + cz) / (CHUNK_COUNT * CHUNK_COUNT)) * 100));
+                            }
+                        }
+                    }
+                    if (loaded === 0) generateWorld(onProgress);
+                } else {
+                    generateWorld(onProgress);
+                }
+                for (const chunk of chunks.values()) chunk.dirty = true;
+                loading.classList.remove('active');
+                const spawn = findSpawnPosition();
+                camera.position.set(spawn.x, spawn.y, spawn.z);
+            }, 50);
+        }
+
+        // ==========================================
+        // FÍSICA DEL JUGADOR
+        // ==========================================
+        const GRAVITY = -26.0;
+        const GRAVITY_WATER = -6.0;
+        const SWIM_UP_SPEED = 5.0;
+        const SWIM_DOWN_SPEED = 5.0;
+        const BUOYANCY = 3.5;
+        const PLAYER_HEIGHT = 1.62;
+        const PLAYER_RADIUS = 0.22;
+        const velocity = new THREE.Vector3();
+        let onGround = false;
+
+        let isDead = false;
+        let deathEndTime = 0;
+
+        function collides(px, py, pz) {
+            const r = PLAYER_RADIUS;
+            const feetY = py - PLAYER_HEIGHT + 0.1;
+            const headY = py - 0.1;
+            const minX = Math.floor(px - r), maxX = Math.floor(px + r);
+            const minY = Math.floor(feetY),  maxY = Math.floor(headY);
+            const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
+            for (let bx = minX; bx <= maxX; bx++)
+                for (let by = minY; by <= maxY; by++)
+                    for (let bz = minZ; bz <= maxZ; bz++)
+                        if (isSolid(bx, by, bz)) return true;
+            return false;
+        }
+
+        function checkGround(px, py, pz) {
+            const r = PLAYER_RADIUS - 0.02;
+            const feetY = py - PLAYER_HEIGHT - 0.05;
+            const minX = Math.floor(px - r), maxX = Math.floor(px + r);
+            const checkY = Math.floor(feetY);
+            const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
+            for (let bx = minX; bx <= maxX; bx++)
                 for (let bz = minZ; bz <= maxZ; bz++)
-                    if (isSolid(bx, by, bz)) return true;
-        return false;
-    }
-
-    function checkGround(px, py, pz) {
-        const r = PLAYER_RADIUS - 0.02;
-        const feetY = py - PLAYER_HEIGHT - 0.05;
-        const minX = Math.floor(px - r), maxX = Math.floor(px + r);
-        const checkY = Math.floor(feetY);
-        const minZ = Math.floor(pz - r), maxZ = Math.floor(pz + r);
-        for (let bx = minX; bx <= maxX; bx++)
-            for (let bz = minZ; bz <= maxZ; bz++)
-                if (isSolid(bx, checkY, bz)) return checkY + 1 + PLAYER_HEIGHT;
-        return null;
-    }
-
-    function collidesWithPlayer(bx, by, bz) {
-        const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
-        const r = PLAYER_RADIUS;
-        return (
-            bx >= Math.floor(px - r) && bx <= Math.floor(px + r) &&
-            by >= Math.floor(py - PLAYER_HEIGHT) && by <= Math.floor(py) &&
-            bz >= Math.floor(pz - r) && bz <= Math.floor(pz + r)
-        );
-    }
-
-    function isPlayerSwimming() {
-        const cx = Math.floor(camera.position.x);
-        const cz = Math.floor(camera.position.z);
-        return isWaterAt(cx, Math.floor(camera.position.y - PLAYER_HEIGHT * 0.9), cz) ||
-               isWaterAt(cx, Math.floor(camera.position.y - PLAYER_HEIGHT * 0.4), cz) ||
-               isWaterAt(cx, Math.floor(camera.position.y), cz);
-    }
-
-    function isPlayerInLava() {
-        const cx = Math.floor(camera.position.x);
-        const cz = Math.floor(camera.position.z);
-        const points = [
-            camera.position.y,
-            camera.position.y - 0.4,
-            camera.position.y - PLAYER_HEIGHT * 0.5,
-            camera.position.y - PLAYER_HEIGHT * 0.9,
-            camera.position.y - PLAYER_HEIGHT
-        ];
-        for (const py of points) if (isLavaAt(cx, Math.floor(py), cz)) return true;
-        return false;
-    }
-
-    // ==========================================
-    // TRAMPILLAS
-    // ==========================================
-    const currentlyOpenTrapdoors = new Set();
-
-    function updateTrapdoors() {
-        const px = Math.floor(camera.position.x);
-        const pz = Math.floor(camera.position.z);
-        const feetY = Math.floor(camera.position.y - PLAYER_HEIGHT);
-
-        const candidates = [
-            { x: px, y: feetY, z: pz },
-            { x: px, y: feetY + 1, z: pz }
-        ];
-        const touched = new Set();
-
-        for (const c of candidates) {
-            const b = getBlock(c.x, c.y, c.z);
-            if (b && b.type === BLOCK_TYPES.TRAPDOOR) {
-                const key = getCoordKey(c.x, c.y, c.z);
-                touched.add(key);
-                if (!b.opened) {
-                    b.opened = true;
-                    markChunkDirty(c.x, c.z);
-                    const chunk = getChunkForBlock(c.x, c.y, c.z);
-                    if (chunk) chunk.needsSave = true;
-                }
-            }
+                    if (isSolid(bx, checkY, bz)) return checkY + 1 + PLAYER_HEIGHT;
+            return null;
         }
 
-        for (const key of currentlyOpenTrapdoors) {
-            if (!touched.has(key)) {
+        function collidesWithPlayer(bx, by, bz) {
+            const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+            const r = PLAYER_RADIUS;
+            return (
+                bx >= Math.floor(px - r) && bx <= Math.floor(px + r) &&
+                by >= Math.floor(py - PLAYER_HEIGHT) && by <= Math.floor(py) &&
+                bz >= Math.floor(pz - r) && bz <= Math.floor(pz + r)
+            );
+        }
+
+        function isPlayerSwimming() {
+            const cx = Math.floor(camera.position.x);
+            const cz = Math.floor(camera.position.z);
+            const feetY = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.9);
+            const midY  = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.4);
+            const eyeY  = Math.floor(camera.position.y);
+            return isWaterAt(cx, feetY, cz) || isWaterAt(cx, midY, cz) || isWaterAt(cx, eyeY, cz);
+        }
+
+        function isPlayerInLava() {
+            const cx = Math.floor(camera.position.x);
+            const cz = Math.floor(camera.position.z);
+            const points = [
+                camera.position.y,
+                camera.position.y - 0.4,
+                camera.position.y - PLAYER_HEIGHT * 0.5,
+                camera.position.y - PLAYER_HEIGHT * 0.9,
+                camera.position.y - PLAYER_HEIGHT
+            ];
+            for (const py of points) {
+                if (isLavaAt(cx, Math.floor(py), cz)) return true;
+            }
+            return false;
+        }
+
+        // ==========================================
+        // MUERTE
+        // ==========================================
+        const deathScreen = document.getElementById('deathScreen');
+        const deathTimerEl = document.getElementById('deathTimer');
+        const lavaOverlay = document.getElementById('lavaOverlay');
+
+        function triggerDeath() {
+            if (isDead) return;
+            isDead = true;
+            deathEndTime = performance.now() + DEATH_DURATION_MS;
+            velocity.set(0, 0, 0);
+            deathScreen.classList.add('active');
+            lavaOverlay.classList.remove('active');
+            deathTimerEl.textContent = '5';
+        }
+
+        function respawnPlayer() {
+            const center = findIslandCenter();
+            camera.position.set(center.x, center.y, center.z);
+            velocity.set(0, 0, 0);
+            onGround = false;
+            isDead = false;
+            deathScreen.classList.remove('active');
+            scene.background = new THREE.Color(SKY_COLOR);
+            scene.fog.color.set(SKY_COLOR);
+            scene.fog.density = 0.010;
+            document.getElementById('waterOverlay').classList.remove('active');
+            lavaOverlay.classList.remove('active');
+        }
+
+        // ==========================================
+        // ERUPCIONES
+        // ==========================================
+        const eruptionWarning = document.getElementById('eruptionWarning');
+        let nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
+        let eruptionActive = false;
+
+        function triggerEruption() {
+            if (eruptionActive) return;
+            eruptionActive = true;
+            eruptionWarning.classList.add('active');
+            setTimeout(() => eruptionWarning.classList.remove('active'), 5000);
+
+            const meteorCount = 15 + Math.floor(Math.random() * 11);
+            for (let i = 0; i < meteorCount; i++) {
+                setTimeout(() => spawnLavaMeteor(), i * 250);
+            }
+            setTimeout(() => { eruptionActive = false; }, meteorCount * 250 + 2000);
+        }
+
+        function spawnLavaMeteor() {
+            let x, z, found = false;
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 55;
+                x = Math.floor(WORLD_SIZE / 2 + Math.cos(angle) * radius);
+                z = Math.floor(WORLD_SIZE / 2 + Math.sin(angle) * radius);
+                if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
+                for (let y = 40; y >= SEA_LEVEL; y--) {
+                    const b = getBlock(x, y, z);
+                    if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                        found = true; break;
+                    }
+                }
+                if (found) break;
+            }
+            if (!found) return;
+
+            let surfaceY = -1;
+            for (let y = 40; y >= 0; y--) {
+                const b = getBlock(x, y, z);
+                if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
+                    surfaceY = y + 1; break;
+                }
+            }
+            if (surfaceY < 0) return;
+
+            animateMeteorFall(x, surfaceY + 25, z, surfaceY, () => {
+                const srcId = nextLavaSourceId++;
+                addBlockToWorld(x, surfaceY, z, BLOCK_TYPES.LAVA, {
+                    level: LAVA_SOURCE, sourceId: srcId,
+                    expiresAt: performance.now() + LAVA_LIFETIME_MS
+                });
+                queueFluidUpdate(x, surfaceY, z);
+                queueFluidNeighbors(x, surfaceY, z);
+            });
+        }
+
+        function animateMeteorFall(x, startY, z, endY, onImpact) {
+            const meteorGroup = new THREE.Group();
+            const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const mat = new THREE.MeshLambertMaterial({
+                color: 0xff5722, emissive: 0xff5722, emissiveIntensity: 1.2
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x + 0.5, startY + 0.5, z + 0.5);
+            meteorGroup.add(mesh);
+            scene.add(meteorGroup);
+
+            const startTime = performance.now();
+            const duration = 800;
+
+            function step() {
+                const t = Math.min(1, (performance.now() - startTime) / duration);
+                const y = startY + (endY - startY) * t;
+                mesh.position.y = y + 0.5;
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    scene.remove(meteorGroup);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                    onImpact();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        let lastLavaCleanup = 0;
+        function cleanupExpiredLava() {
+            const now = performance.now();
+            if (now - lastLavaCleanup < 2000) return;
+            lastLavaCleanup = now;
+
+            const toRemove = [];
+            for (const [key, block] of blockMap.entries()) {
+                if (block.type === BLOCK_TYPES.LAVA && block.expiresAt && block.expiresAt <= now) {
+                    toRemove.push(key);
+                }
+            }
+            for (const key of toRemove) {
                 const [x, y, z] = key.split(',').map(Number);
-                const b = getBlock(x, y, z);
-                if (b && b.type === BLOCK_TYPES.TRAPDOOR && b.opened) {
-                    b.opened = false;
-                    markChunkDirty(x, z);
-                    const chunk = getChunkForBlock(x, y, z);
-                    if (chunk) chunk.needsSave = true;
+                removeBlockFromWorld(x, y, z);
+                queueFluidNeighbors(x, y, z);
+            }
+        }
+
+        // ==========================================
+        // INPUT
+        // ==========================================
+        const keys = { w: false, a: false, s: false, d: false, space: false, up: false, down: false };
+
+        document.addEventListener('keydown', (e) => {
+            if (isDead) return;
+            if (e.code === 'KeyW') keys.w = true;
+            if (e.code === 'KeyA') keys.a = true;
+            if (e.code === 'KeyS') keys.s = true;
+            if (e.code === 'KeyD') keys.d = true;
+            if (e.code === 'Space') keys.space = true;
+            if (e.code === 'ArrowUp') keys.up = true;
+            if (e.code === 'ArrowDown') keys.down = true;
+
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= HOTBAR.length) {
+                selectedSlot = num - 1;
+                updateHotbarUI();
+            }
+            if (e.code === 'Enter' && controls.isLocked) {
+                const target = getTargetBlock();
+                if (target) removeBlock(target.x, target.y, target.z);
+            }
+            if (e.code === 'KeyQ' && controls.isLocked) {
+                const target = getTargetFluid();
+                if (target) {
+                    removeBlockFromWorld(target.x, target.y, target.z);
+                    queueFluidNeighbors(target.x, target.y, target.z);
                 }
             }
-        }
-
-        currentlyOpenTrapdoors.clear();
-        for (const key of touched) currentlyOpenTrapdoors.add(key);
-    }
-
-    // ==========================================
-    // MUERTE
-    // ==========================================
-    const deathScreen = document.getElementById('deathScreen');
-    const deathTimerEl = document.getElementById('deathTimer');
-    const lavaOverlay = document.getElementById('lavaOverlay');
-
-    function triggerDeath() {
-        if (isDead) return;
-        isDead = true;
-        deathEndTime = performance.now() + DEATH_DURATION_MS;
-        velocity.set(0, 0, 0);
-        deathScreen.classList.add('active');
-        lavaOverlay.classList.remove('active');
-        deathTimerEl.textContent = '5';
-    }
-
-    function respawnPlayer() {
-        const center = findIslandCenter();
-        camera.position.set(center.x, center.y, center.z);
-        velocity.set(0, 0, 0);
-        onGround = false;
-        isDead = false;
-        deathScreen.classList.remove('active');
-        scene.background = new THREE.Color(SKY_COLOR);
-        scene.fog.color.set(SKY_COLOR);
-        scene.fog.density = 0.010;
-        document.getElementById('waterOverlay').classList.remove('active');
-        lavaOverlay.classList.remove('active');
-    }
-
-    // ==========================================
-    // ERUPCIONES
-    // ==========================================
-    const eruptionWarning = document.getElementById('eruptionWarning');
-    let nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
-    let eruptionActive = false;
-
-    function triggerEruption() {
-        if (eruptionActive) return;
-        eruptionActive = true;
-        eruptionWarning.classList.add('active');
-        setTimeout(() => eruptionWarning.classList.remove('active'), 5000);
-        const meteorCount = 15 + Math.floor(Math.random() * 11);
-        for (let i = 0; i < meteorCount; i++) setTimeout(() => spawnLavaMeteor(), i * 250);
-        setTimeout(() => { eruptionActive = false; }, meteorCount * 250 + 2000);
-    }
-
-    function spawnLavaMeteor() {
-        let x, z, found = false;
-        for (let attempt = 0; attempt < 30; attempt++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * 55;
-            x = Math.floor(WORLD_SIZE / 2 + Math.cos(angle) * radius);
-            z = Math.floor(WORLD_SIZE / 2 + Math.sin(angle) * radius);
-            if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
-            for (let y = 40; y >= SEA_LEVEL; y--) {
-                const b = getBlock(x, y, z);
-                if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) { found = true; break; }
-            }
-            if (found) break;
-        }
-        if (!found) return;
-        let surfaceY = -1;
-        for (let y = 40; y >= 0; y--) {
-            const b = getBlock(x, y, z);
-            if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) { surfaceY = y + 1; break; }
-        }
-        if (surfaceY < 0) return;
-
-        animateMeteorFall(x, surfaceY + 25, z, surfaceY, () => {
-            const expiresAt = performance.now() + LAVA_LIFETIME_MS;
-            addBlockToWorld(x, surfaceY, z, BLOCK_TYPES.LAVA, LAVA_SOURCE, expiresAt);
-            queueFluidUpdate(x, surfaceY, z);
-            queueFluidNeighbors(x, surfaceY, z);
         });
-    }
 
-    function animateMeteorFall(x, startY, z, endY, onImpact) {
-        const meteorGroup = new THREE.Group();
-        const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-        const mat = new THREE.MeshLambertMaterial({ color: 0xff5722, emissive: 0xff5722, emissiveIntensity: 1.2 });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(x + 0.5, startY + 0.5, z + 0.5);
-        meteorGroup.add(mesh);
-        scene.add(meteorGroup);
-        const startTime = performance.now();
-        const duration = 800;
-        function step() {
-            const t = Math.min(1, (performance.now() - startTime) / duration);
-            mesh.position.y = (startY + (endY - startY) * t) + 0.5;
-            if (t < 1) requestAnimationFrame(step);
-            else {
-                scene.remove(meteorGroup);
-                mesh.geometry.dispose();
-                mesh.material.dispose();
-                onImpact();
-            }
-        }
-        requestAnimationFrame(step);
-    }
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW') keys.w = false;
+            if (e.code === 'KeyA') keys.a = false;
+            if (e.code === 'KeyS') keys.s = false;
+            if (e.code === 'KeyD') keys.d = false;
+            if (e.code === 'Space') keys.space = false;
+            if (e.code === 'ArrowUp') keys.up = false;
+            if (e.code === 'ArrowDown') keys.down = false;
+        });
 
-    let lastLavaCleanup = 0;
-    function cleanupExpiredLava() {
-        const now = performance.now();
-        if (now - lastLavaCleanup < 2000) return;
-        lastLavaCleanup = now;
-        const toRemove = [];
-        for (const [key, block] of blockMap.entries()) {
-            if (block.type === BLOCK_TYPES.LAVA && block.expiresAt && block.expiresAt <= now) toRemove.push(key);
-        }
-        for (const key of toRemove) {
-            const [x, y, z] = key.split(',').map(Number);
-            removeBlockFromWorld(x, y, z);
-            queueFluidNeighbors(x, y, z);
-        }
-    }
-
-    // ==========================================
-    // INPUT
-    // ==========================================
-    const keys = { w: false, a: false, s: false, d: false, space: false, up: false, down: false };
-
-    document.addEventListener('keydown', (e) => {
-        if (isDead) return;
-        if (e.code === 'KeyW') keys.w = true;
-        if (e.code === 'KeyA') keys.a = true;
-        if (e.code === 'KeyS') keys.s = true;
-        if (e.code === 'KeyD') keys.d = true;
-        if (e.code === 'Space') keys.space = true;
-        if (e.code === 'ArrowUp') keys.up = true;
-        if (e.code === 'ArrowDown') keys.down = true;
-
-        const num = parseInt(e.key);
-        if (num >= 1 && num <= HOTBAR.length) {
-            selectedSlot = num - 1;
+        window.addEventListener('wheel', (e) => {
+            if (isDead || !controls.isLocked) return;
+            selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR.length) % HOTBAR.length;
             updateHotbarUI();
-        }
-        if (e.code === 'Enter' && controls.isLocked) {
-            const target = getTargetBlock();
-            if (target) removeBlock(target.x, target.y, target.z);
-        }
-        if (e.code === 'KeyQ' && controls.isLocked) {
-            const target = getTargetFluid();
-            if (target) {
-                removeBlockFromWorld(target.x, target.y, target.z);
-                queueFluidNeighbors(target.x, target.y, target.z);
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (isDead || !controls.isLocked) return;
+            if (e.button === 0) {
+                const target = getTargetBlock();
+                if (!target) return;
+                const bx = target.x + target.normal.x;
+                const by = target.y + target.normal.y;
+                const bz = target.z + target.normal.z;
+                addBlock(bx, by, bz, HOTBAR[selectedSlot].type);
+            }
+        });
+
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // ==========================================
+        // API AÑADIR / QUITAR
+        // ==========================================
+        function addBlock(x, y, z, type) {
+            if (isDead) return;
+            const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+            const key = getCoordKey(bx, by, bz);
+            const existing = blockMap.get(key);
+
+            const isFluidType = type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
+            if (!isFluidType && collidesWithPlayer(bx, by, bz)) return;
+
+            if (existing) {
+                if (existing.type === type) return;
+                if (!isFluid(existing.type)) return;
+                removeBlockFromWorld(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            }
+
+            if (type === BLOCK_TYPES.WATER) {
+                addBlockToWorld(bx, by, bz, BLOCK_TYPES.WATER, { level: WATER_SOURCE });
+                queueFluidUpdate(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            } else if (type === BLOCK_TYPES.LAVA) {
+                // ✅ Lava colocada por el jugador: nueva fuente con id único
+                const srcId = nextLavaSourceId++;
+                addBlockToWorld(bx, by, bz, BLOCK_TYPES.LAVA, {
+                    level: LAVA_SOURCE, sourceId: srcId
+                });
+                queueFluidUpdate(bx, by, bz);
+                queueFluidNeighbors(bx, by, bz);
+            } else if (type === BLOCK_TYPES.TRAPDOOR) {
+                addBlockToWorld(bx, by, bz, BLOCK_TYPES.TRAPDOOR, { isOpen: false });
+                queueFluidNeighbors(bx, by, bz);
+            } else {
+                addBlockToWorld(bx, by, bz, type);
+                queueFluidNeighbors(bx, by, bz);
             }
         }
-    });
 
-    document.addEventListener('keyup', (e) => {
-        if (e.code === 'KeyW') keys.w = false;
-        if (e.code === 'KeyA') keys.a = false;
-        if (e.code === 'KeyS') keys.s = false;
-        if (e.code === 'KeyD') keys.d = false;
-        if (e.code === 'Space') keys.space = false;
-        if (e.code === 'ArrowUp') keys.up = false;
-        if (e.code === 'ArrowDown') keys.down = false;
-    });
-
-    window.addEventListener('wheel', (e) => {
-        if (isDead || !controls.isLocked) return;
-        selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR.length) % HOTBAR.length;
-        updateHotbarUI();
-    });
-
-    window.addEventListener('mousedown', (e) => {
-        if (isDead || !controls.isLocked) return;
-        if (e.button === 0) {
-            const target = getTargetBlock();
-            if (!target) return;
-            addBlock(target.x + target.normal.x, target.y + target.normal.y, target.z + target.normal.z, HOTBAR[selectedSlot].type);
-        }
-    });
-
-    window.addEventListener('contextmenu', (e) => e.preventDefault());
-
-    // ==========================================
-    // API ADD / REMOVE
-    // ==========================================
-    function addBlock(x, y, z, type) {
-        if (isDead) return;
-        const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
-        const key = getCoordKey(bx, by, bz);
-        const existing = blockMap.get(key);
-        const isFluidType = isFluid(type);
-        if (!isFluidType && collidesWithPlayer(bx, by, bz)) return;
-        if (existing) {
-            if (existing.type === type) return;
-            if (!isFluid(existing.type)) return;
+        function removeBlock(x, y, z) {
+            if (isDead) return false;
+            const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+            const key = getCoordKey(bx, by, bz);
+            const block = blockMap.get(key);
+            if (!block) return false;
+            if (block.type === BLOCK_TYPES.WATER || block.type === BLOCK_TYPES.LAVA) return false;
             removeBlockFromWorld(bx, by, bz);
             queueFluidNeighbors(bx, by, bz);
+            return true;
         }
-        if (type === BLOCK_TYPES.WATER) {
-            addBlockToWorld(bx, by, bz, BLOCK_TYPES.WATER, WATER_SOURCE);
-            queueFluidUpdate(bx, by, bz); queueFluidNeighbors(bx, by, bz);
-        } else if (type === BLOCK_TYPES.LAVA) {
-            addBlockToWorld(bx, by, bz, BLOCK_TYPES.LAVA, LAVA_SOURCE);
-            queueFluidUpdate(bx, by, bz); queueFluidNeighbors(bx, by, bz);
-        } else {
-            addBlockToWorld(bx, by, bz, type);
-            queueFluidNeighbors(bx, by, bz);
-        }
-    }
 
-    function removeBlock(x, y, z) {
-        if (isDead) return false;
-        const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
-        const key = getCoordKey(bx, by, bz);
-        const block = blockMap.get(key);
-        if (!block) return false;
-        if (isFluid(block.type)) return false;
-        removeBlockFromWorld(bx, by, bz);
-        queueFluidNeighbors(bx, by, bz);
-        return true;
-    }
+        // ==========================================
+        // RAYCASTING
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        raycaster.far = 7;
 
-    // ==========================================
-    // RAYCASTING
-    // ==========================================
-    const raycaster = new THREE.Raycaster();
-    raycaster.far = 7;
-
-    function getTargetBlock() {
-        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const solidMeshes = [];
-        for (const chunk of chunks.values()) {
-            for (const child of chunk.group.children) {
-                if (child.isInstancedMesh && !child.userData.isWater && !child.userData.isTrapdoor) solidMeshes.push(child);
-            }
-        }
-        const intersects = raycaster.intersectObjects(solidMeshes, false);
-        if (intersects.length > 0) {
-            const hit = intersects[0];
-            const mesh = hit.object;
-            if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
-                const pos = mesh.userData.blockPositions[hit.instanceId];
-                if (pos) {
-                    const normal = hit.face.normal.clone().round();
-                    return { x: pos.x, y: pos.y, z: pos.z, normal };
-                }
-            }
-        }
-        return null;
-    }
-
-    function getTargetFluid() {
-        raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-        const fluidMeshes = [];
-        for (const chunk of chunks.values()) {
-            for (const child of chunk.group.children) {
-                if (child.isInstancedMesh && child.userData.isFluid) fluidMeshes.push(child);
-            }
-        }
-        const intersects = raycaster.intersectObjects(fluidMeshes, false);
-        if (intersects.length > 0) {
-            const hit = intersects[0];
-            const mesh = hit.object;
-            if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
-                const pos = mesh.userData.blockPositions[hit.instanceId];
-                if (pos) return { x: pos.x, y: pos.y, z: pos.z };
-            }
-        }
-        return null;
-    }
-
-    // ==========================================
-    // UI HOTBAR
-    // ==========================================
-    function buildHotbarUI() {
-        const hotbar = document.getElementById('hotbar');
-        hotbar.innerHTML = '';
-        HOTBAR.forEach((slot, idx) => {
-            const el = document.createElement('div');
-            el.className = 'slot' + (idx === selectedSlot ? ' active' : '');
-            el.innerHTML = `<span class="key">${idx + 1}</span><div class="swatch" style="background:${slot.color}"></div><span>${slot.label}</span>`;
-            el.addEventListener('click', () => {
-                if (isDead) return;
-                selectedSlot = idx;
-                updateHotbarUI();
-            });
-            hotbar.appendChild(el);
-        });
-    }
-
-    function updateHotbarUI() {
-        const slots = document.querySelectorAll('.slot');
-        slots.forEach((s, i) => s.classList.toggle('active', i === selectedSlot));
-        const blockInfo = document.getElementById('blockInfo');
-        blockInfo.textContent = `Seleccionado: ${HOTBAR[selectedSlot].label}`;
-        blockInfo.classList.add('visible');
-        clearTimeout(updateHotbarUI._t);
-        updateHotbarUI._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
-    }
-    buildHotbarUI();
-
-    // ==========================================
-    // RESET
-    // ==========================================
-    document.getElementById('reset-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!confirm("¿Resetear el mundo?")) return;
-        const loading = document.getElementById('loading');
-        const loadingBar = document.getElementById('loadingBar');
-        loading.classList.add('active');
-        loadingBar.style.width = '0%';
-        setTimeout(() => {
-            clearAllSave();
+        function getTargetBlock() {
+            raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+            const solidMeshes = [];
             for (const chunk of chunks.values()) {
-                while (chunk.group.children.length > 0) {
-                    const c = chunk.group.children[0];
-                    if (c.dispose) c.dispose();
-                    chunk.group.remove(c);
+                for (const child of chunk.group.children) {
+                    if (child.isInstancedMesh && !child.userData.isWater) {
+                        solidMeshes.push(child);
+                    }
                 }
-                worldGroup.remove(chunk.group);
             }
-            chunks.clear();
-            blockMap.clear();
-            fluidUpdateQueue.clear();
-            currentlyOpenTrapdoors.clear();
-
-            generateWorld((p) => { loadingBar.style.width = p + '%'; });
-            for (const chunk of chunks.values()) chunk.dirty = true;
-            processDirtyChunks(999);
-
-            const sp = findSpawnPosition();
-            camera.position.set(sp.x, sp.y, sp.z);
-            velocity.set(0, 0, 0);
-            nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
-            saveAllDirtyChunks(true);
-            loading.classList.remove('active');
-        }, 50);
-    });
-
-    // ==========================================
-    // BUCLE PRINCIPAL
-    // ==========================================
-    const clock = new THREE.Clock();
-    let fluidAccumulator = 0;
-    const FLUID_TICK_RATE = 0.15;
-    let saveAccumulator = 0;
-    const SAVE_TICK_RATE = 3.0;
-
-    const waterOverlay = document.getElementById('waterOverlay');
-    let overlayActive = false;
-    let hasEnteredWorld = false;
-    controls.addEventListener('lock', () => { hasEnteredWorld = true; });
-
-    function updateCounters() {
-        document.getElementById('chunkCount').textContent = chunks.size;
-        document.getElementById('blockCount').textContent = blockMap.size.toLocaleString();
-        let waterCount = 0, lavaCount = 0, obsidianCount = 0;
-        for (const b of blockMap.values()) {
-            if (b.type === BLOCK_TYPES.WATER) waterCount++;
-            else if (b.type === BLOCK_TYPES.LAVA) lavaCount++;
-            else if (b.type === BLOCK_TYPES.OBSIDIAN) obsidianCount++;
-        }
-        document.getElementById('waterCount').textContent = waterCount.toLocaleString();
-        document.getElementById('lavaCount').textContent = lavaCount.toLocaleString();
-        document.getElementById('obsidianCount').textContent = obsidianCount.toLocaleString();
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        const delta = Math.min(clock.getDelta(), 0.05);
-        const now = performance.now();
-
-        const processed = processDirtyChunks(4);
-        if (processed > 0) updateCounters();
-
-        fluidAccumulator += delta;
-        if (fluidAccumulator >= FLUID_TICK_RATE) {
-            fluidAccumulator = 0;
-            let it = 0;
-            while (tickFluids() && it < 5) it++;
+            const intersects = raycaster.intersectObjects(solidMeshes, false);
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const mesh = hit.object;
+                if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
+                    const pos = mesh.userData.blockPositions[hit.instanceId];
+                    if (pos) {
+                        const normal = hit.face.normal.clone().round();
+                        return { x: pos.x, y: pos.y, z: pos.z, normal };
+                    }
+                }
+            }
+            return null;
         }
 
-        cleanupExpiredLava();
-
-        saveAccumulator += delta;
-        if (saveAccumulator >= SAVE_TICK_RATE) {
-            saveAccumulator = 0;
-            saveAllDirtyChunks();
+        function getTargetFluid() {
+            raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+            const fluidMeshes = [];
+            for (const chunk of chunks.values()) {
+                for (const child of chunk.group.children) {
+                    if (child.isInstancedMesh && child.userData.isFluid) {
+                        fluidMeshes.push(child);
+                    }
+                }
+            }
+            const intersects = raycaster.intersectObjects(fluidMeshes, false);
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const mesh = hit.object;
+                if (mesh.isInstancedMesh && mesh.userData.blockPositions) {
+                    const pos = mesh.userData.blockPositions[hit.instanceId];
+                    if (pos) return { x: pos.x, y: pos.y, z: pos.z };
+                }
+            }
+            return null;
         }
 
-        if (now >= nextEruptionTime && !isDead) {
-            triggerEruption();
-            nextEruptionTime = now + ERUPTION_INTERVAL_MS;
+        // ==========================================
+        // UI HOTBAR
+        // ==========================================
+        function buildHotbarUI() {
+            const hotbar = document.getElementById('hotbar');
+            hotbar.innerHTML = '';
+            HOTBAR.forEach((slot, idx) => {
+                const el = document.createElement('div');
+                el.className = 'slot' + (idx === selectedSlot ? ' active' : '');
+                el.innerHTML = `
+                    <span class="key">${idx + 1}</span>
+                    <div class="swatch" style="background:${slot.color}"></div>
+                    <span>${slot.label}</span>
+                `;
+                el.addEventListener('click', () => {
+                    if (isDead) return;
+                    selectedSlot = idx;
+                    updateHotbarUI();
+                });
+                hotbar.appendChild(el);
+            });
         }
 
-        if (isDead) {
-            const remaining = Math.max(0, deathEndTime - now);
-            deathTimerEl.textContent = Math.ceil(remaining / 1000);
-            if (remaining <= 0) respawnPlayer();
-            renderer.render(scene, camera);
-            return;
+        function updateHotbarUI() {
+            const slots = document.querySelectorAll('.slot');
+            slots.forEach((s, i) => s.classList.toggle('active', i === selectedSlot));
+            const blockInfo = document.getElementById('blockInfo');
+            blockInfo.textContent = `Seleccionado: ${HOTBAR[selectedSlot].label}`;
+            blockInfo.classList.add('visible');
+            clearTimeout(updateHotbarUI._t);
+            updateHotbarUI._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
+        }
+        buildHotbarUI();
+
+        // ==========================================
+        // RESET
+        // ==========================================
+        document.getElementById('reset-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm("¿Resetear el mundo?")) return;
+
+            const loading = document.getElementById('loading');
+            const loadingBar = document.getElementById('loadingBar');
+            loading.classList.add('active');
+            loadingBar.style.width = '0%';
+
+            setTimeout(() => {
+                clearAllSave();
+                for (const chunk of chunks.values()) {
+                    while (chunk.group.children.length > 0) {
+                        const c = chunk.group.children[0];
+                        if (c.dispose) c.dispose();
+                        chunk.group.remove(c);
+                    }
+                    worldGroup.remove(chunk.group);
+                }
+                chunks.clear();
+                blockMap.clear();
+                fluidUpdateQueue.clear();
+                nextLavaSourceId = 1;
+
+                generateWorld((p) => { loadingBar.style.width = p + '%'; });
+                for (const chunk of chunks.values()) chunk.dirty = true;
+                processDirtyChunks(999);
+
+                const sp = findSpawnPosition();
+                camera.position.set(sp.x, sp.y, sp.z);
+                velocity.set(0, 0, 0);
+                nextEruptionTime = performance.now() + FIRST_ERUPTION_DELAY_MS;
+
+                saveAllDirtyChunks(true);
+                loading.classList.remove('active');
+            }, 50);
+        });
+
+        // ==========================================
+        // BUCLE PRINCIPAL
+        // ==========================================
+        const clock = new THREE.Clock();
+        let fluidAccumulator = 0;
+        const FLUID_TICK_RATE = 0.15;
+        let saveAccumulator = 0;
+        const SAVE_TICK_RATE = 3.0;
+
+        const waterOverlay = document.getElementById('waterOverlay');
+        let overlayActive = false;
+        let hasEnteredWorld = false;
+        controls.addEventListener('lock', () => { hasEnteredWorld = true; });
+
+        function updateCounters() {
+            document.getElementById('chunkCount').textContent = chunks.size;
+            document.getElementById('blockCount').textContent = blockMap.size.toLocaleString();
+            let waterCount = 0, lavaCount = 0, obsidianCount = 0;
+            for (const b of blockMap.values()) {
+                if (b.type === BLOCK_TYPES.WATER) waterCount++;
+                if (b.type === BLOCK_TYPES.LAVA) lavaCount++;
+                if (b.type === BLOCK_TYPES.OBSIDIAN) obsidianCount++;
+            }
+            document.getElementById('waterCount').textContent = waterCount.toLocaleString();
+            document.getElementById('lavaCount').textContent = lavaCount.toLocaleString();
+            document.getElementById('obsidianCount').textContent = obsidianCount.toLocaleString();
         }
 
-        if (controls.isLocked) {
-            updateTrapdoors();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const now = performance.now();
 
-            if (isPlayerInLava()) {
-                lavaOverlay.classList.add('active');
-                triggerDeath();
+            const processed = processDirtyChunks(4);
+            if (processed > 0) updateCounters();
+
+            fluidAccumulator += delta;
+            if (fluidAccumulator >= FLUID_TICK_RATE) {
+                fluidAccumulator = 0;
+                let it = 0;
+                while (tickFluids() && it < 5) it++;
+            }
+
+            tickTrapdoors();
+            cleanupExpiredLava();
+
+            saveAccumulator += delta;
+            if (saveAccumulator >= SAVE_TICK_RATE) {
+                saveAccumulator = 0;
+                saveAllDirtyChunks();
+            }
+
+            if (now >= nextEruptionTime && !isDead) {
+                triggerEruption();
+                nextEruptionTime = now + ERUPTION_INTERVAL_MS;
+            }
+
+            if (isDead) {
+                const remaining = Math.max(0, deathEndTime - now);
+                deathTimerEl.textContent = Math.ceil(remaining / 1000);
+                if (remaining <= 0) respawnPlayer();
                 renderer.render(scene, camera);
                 return;
-            } else {
-                lavaOverlay.classList.remove('active');
             }
 
-            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            forward.y = 0; forward.normalize();
-            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-            right.y = 0; right.normalize();
-
-            const moveX = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
-            const moveZ = (keys.s ? 1 : 0) - (keys.w ? 1 : 0);
-            const moveDir = new THREE.Vector3().addScaledVector(forward, -moveZ).addScaledVector(right, moveX);
-            if (moveDir.lengthSq() > 0) moveDir.normalize();
-
-            const swimming = isPlayerSwimming();
-            const submerged = hasEnteredWorld && swimming;
-
-            if (submerged !== overlayActive) {
-                overlayActive = submerged;
-                waterOverlay.classList.toggle('active', submerged);
-                scene.background = new THREE.Color(submerged ? UNDERWATER_COLOR : SKY_COLOR);
-                scene.fog.color.set(submerged ? UNDERWATER_COLOR : SKY_COLOR);
-                scene.fog.density = submerged ? 0.08 : 0.010;
-            }
-
-            const speed = swimming ? 4.5 : 7.5;
-            const accel = swimming ? 6 : 12;
-            velocity.x += (moveDir.x * speed - velocity.x) * accel * delta;
-            velocity.z += (moveDir.z * speed - velocity.z) * accel * delta;
-
-            if (swimming) {
-                if (keys.up) velocity.y = SWIM_UP_SPEED;
-                else if (keys.down) velocity.y = -SWIM_DOWN_SPEED;
-                else velocity.y += (BUOYANCY - velocity.y) * 3 * delta;
-                if (keys.space) velocity.y = Math.max(velocity.y, 4.0);
-                onGround = false;
-            } else {
-                if (keys.space && onGround) { velocity.y = 8.2; onGround = false; }
-            }
-
-            let px = camera.position.x, py = camera.position.y, pz = camera.position.z;
-
-            const nextX = px + velocity.x * delta;
-            if (!collides(nextX, py, pz)) px = nextX; else velocity.x = 0;
-            const nextZ = pz + velocity.z * delta;
-            if (!collides(px, py, nextZ)) pz = nextZ; else velocity.z = 0;
-
-            if (swimming) {
-                if (!keys.up && !keys.down) velocity.y += GRAVITY_WATER * delta;
-                velocity.y *= (1 - 2.5 * delta);
-                const nextY = py + velocity.y * delta;
-                if (!collides(px, nextY, pz)) py = nextY; else velocity.y = 0;
-                const g = checkGround(px, py, pz);
-                if (g !== null && py <= g + 0.05) { py = g; velocity.y = 0; onGround = true; }
-            } else {
-                if (!onGround) {
-                    velocity.y += GRAVITY * delta;
-                    if (velocity.y < -32) velocity.y = -32;
-                    const nextY = py + velocity.y * delta;
-                    if (velocity.y <= 0) {
-                        const g = checkGround(px, nextY, pz);
-                        if (g !== null && nextY <= g) { py = g; velocity.y = 0; onGround = true; }
-                        else py = nextY;
-                    } else {
-                        if (!collides(px, nextY, pz)) py = nextY;
-                        else velocity.y = 0;
-                    }
+            if (controls.isLocked) {
+                if (isPlayerInLava()) {
+                    lavaOverlay.classList.add('active');
+                    triggerDeath();
+                    renderer.render(scene, camera);
+                    return;
                 } else {
+                    lavaOverlay.classList.remove('active');
+                }
+
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                forward.y = 0; forward.normalize();
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                right.y = 0; right.normalize();
+
+                const moveX = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+                const moveZ = (keys.s ? 1 : 0) - (keys.w ? 1 : 0);
+                const moveDir = new THREE.Vector3()
+                    .addScaledVector(forward, -moveZ)
+                    .addScaledVector(right, moveX);
+                if (moveDir.lengthSq() > 0) moveDir.normalize();
+
+                const swimming = isPlayerSwimming();
+                const submerged = hasEnteredWorld && swimming;
+
+                if (submerged !== overlayActive) {
+                    overlayActive = submerged;
+                    waterOverlay.classList.toggle('active', submerged);
+                    scene.background = new THREE.Color(submerged ? UNDERWATER_COLOR : SKY_COLOR);
+                    scene.fog.color.set(submerged ? UNDERWATER_COLOR : SKY_COLOR);
+                    scene.fog.density = submerged ? 0.08 : 0.010;
+                }
+
+                const speed = swimming ? 4.5 : 7.5;
+                const accel = swimming ? 6 : 12;
+
+                velocity.x += (moveDir.x * speed - velocity.x) * accel * delta;
+                velocity.z += (moveDir.z * speed - velocity.z) * accel * delta;
+
+                if (swimming) {
+                    if (keys.up) velocity.y = SWIM_UP_SPEED;
+                    else if (keys.down) velocity.y = -SWIM_DOWN_SPEED;
+                    else velocity.y += (BUOYANCY - velocity.y) * 3 * delta;
+                    if (keys.space) velocity.y = Math.max(velocity.y, 4.0);
+                    onGround = false;
+                } else {
+                    if (keys.space && onGround) { velocity.y = 8.2; onGround = false; }
+                }
+
+                let px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+
+                // ✅ Comprobar trampilla antes de mover
+                checkTrapdoorUnderPlayer(px, py, pz);
+
+                const nextX = px + velocity.x * delta;
+                if (!collides(nextX, py, pz)) px = nextX; else velocity.x = 0;
+                const nextZ = pz + velocity.z * delta;
+                if (!collides(px, py, nextZ)) pz = nextZ; else velocity.z = 0;
+
+                if (swimming) {
+                    if (!keys.up && !keys.down) velocity.y += GRAVITY_WATER * delta;
+                    velocity.y *= (1 - 2.5 * delta);
+                    const nextY = py + velocity.y * delta;
+                    if (!collides(px, nextY, pz)) py = nextY; else velocity.y = 0;
                     const g = checkGround(px, py, pz);
-                    if (g !== null) { py = g; velocity.y = 0; }
-                    else onGround = false;
+                    if (g !== null && py <= g + 0.05) { py = g; velocity.y = 0; onGround = true; }
+                } else {
+                    if (!onGround) {
+                        velocity.y += GRAVITY * delta;
+                        if (velocity.y < -32) velocity.y = -32;
+                        const nextY = py + velocity.y * delta;
+                        if (velocity.y <= 0) {
+                            const g = checkGround(px, nextY, pz);
+                            if (g !== null && nextY <= g) { py = g; velocity.y = 0; onGround = true; }
+                            else py = nextY;
+                        } else {
+                            if (!collides(px, nextY, pz)) py = nextY;
+                            else velocity.y = 0;
+                        }
+                    } else {
+                        const g = checkGround(px, py, pz);
+                        if (g !== null) { py = g; velocity.y = 0; }
+                        else onGround = false;
+                    }
+                }
+
+                if (py < -10) {
+                    const sp = findSpawnPosition();
+                    px = sp.x; py = sp.y; pz = sp.z;
+                    velocity.set(0, 0, 0);
+                    onGround = false;
+                }
+
+                camera.position.set(px, py, pz);
+
+                if (isPlayerInLava()) {
+                    lavaOverlay.classList.add('active');
+                    triggerDeath();
                 }
             }
 
-            if (py < -10) {
-                const sp = findSpawnPosition();
-                px = sp.x; py = sp.y; pz = sp.z;
-                velocity.set(0, 0, 0);
-                onGround = false;
-            }
-
-            camera.position.set(px, py, pz);
-
-            if (isPlayerInLava()) {
-                lavaOverlay.classList.add('active');
-                triggerDeath();
-            }
+            renderer.render(scene, camera);
         }
 
-        renderer.render(scene, camera);
-    }
+        // ==========================================
+        // ARRANQUE
+        // ==========================================
+        const loadingBar = document.getElementById('loadingBar');
+        loadOrGenerateWorld((p) => { loadingBar.style.width = p + '%'; });
+        animate();
 
-    // ==========================================
-    // ARRANQUE
-    // ==========================================
-    const loadingBar = document.getElementById('loadingBar');
-    loadOrGenerateWorld((p) => { loadingBar.style.width = p + '%'; });
-    animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
 
-    window.addEventListener('resize', () => {
-        camera.aspect = innerWidth / innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(innerWidth, innerHeight);
-    });
-
-    window.addEventListener('beforeunload', () => {
-        saveAllDirtyChunks(true);
-    });
+        window.addEventListener('beforeunload', () => {
+            saveAllDirtyChunks(true);
+        });
     </script>
 </body>
 </html>
