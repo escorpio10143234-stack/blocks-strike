@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minecraft 3D - Mochila + Fuego + Puerta + Trampilla</title>
+    <title>Minecraft 3D - Volcán Clásico + Puerta/Trampilla Planas</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
@@ -217,6 +217,8 @@
             justify-content: center;
             align-items: center;
             color: #fff; user-select: none;
+            padding: 20px;
+            overflow-y: auto;
         }
         #inventoryOverlay.active { display: flex; }
         #inventoryOverlay .inv-title {
@@ -263,7 +265,6 @@
             width: 36px; height: 36px;
             border-radius: 5px; margin-bottom: 4px;
             box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
-            /* ✅ Animación de fuego */
             background-size: cover;
         }
         .inv-block .swatch.fire-anim {
@@ -393,7 +394,7 @@
 
     <div id="inventoryOverlay">
         <div class="inv-title">🎒 MOCHILA</div>
-        <div class="inv-subtitle">Haz clic en un bloque para asignarlo a la hotbar · Clic en la hotbar para vaciar</div>
+        <div class="inv-subtitle">Clic en un bloque para asignarlo · Clic en la hotbar para vaciar</div>
 
         <div class="inv-section-title">Bloques disponibles</div>
         <div class="inv-grid" id="invGrid"></div>
@@ -431,10 +432,12 @@
         const FIRST_ERUPTION_DELAY_MS = 60 * 1000;
         const HOTBAR_SIZE = 8;
 
-        // ✅ Puertas y trampillas
-        const DOOR_TRIGGER_DISTANCE = 2.0;    // distancia para abrir/cerrar
-        const TRAPDOOR_CLOSE_DELAY = 300;     // ms tras dejar de pisarla
-        const TRAPDOOR_HEIGHT = 0.0625;       // altura de la rejilla (muy fina)
+        const DOOR_TRIGGER_DISTANCE = 2.0;
+        const TRAPDOOR_CLOSE_DELAY = 300;
+
+        // ✅ Grosores planos
+        const DOOR_THICKNESS = 0.15;      // puerta (panel)
+        const TRAPDOOR_THICKNESS = 0.0625; // trampilla (rejilla fina)
 
         // ==========================================
         // ESCENA
@@ -490,22 +493,19 @@
         scene.add(sunLight);
 
         // ==========================================
-        // TEXTURAS PROCEDURALES ÚNICAS
+        // TEXTURAS
         // ==========================================
         function makeCanvas() {
             const c = document.createElement('canvas');
             c.width = 64; c.height = 64;
             return c;
         }
-
         function finalizeTex(c) {
             const tex = new THREE.CanvasTexture(c);
             tex.magFilter = THREE.NearestFilter;
             tex.minFilter = THREE.NearestFilter;
             return tex;
         }
-
-        // Textura genérica con noise
         function texNoise(baseColor, borderColor, noiseAmount = 150) {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
@@ -525,13 +525,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de TIERRA — terrones irregulares
         function texDirt() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#795548';
             ctx.fillRect(0, 0, 64, 64);
-            // Terrones
             for (let i = 0; i < 60; i++) {
                 const x = Math.floor(Math.random() * 60);
                 const y = Math.floor(Math.random() * 60);
@@ -545,13 +543,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de PIEDRA — grietas
         function texStone() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#9e9e9e';
             ctx.fillRect(0, 0, 64, 64);
-            // Grietas
             ctx.strokeStyle = 'rgba(60,60,60,0.6)';
             ctx.lineWidth = 1;
             for (let i = 0; i < 12; i++) {
@@ -566,7 +562,6 @@
                 }
                 ctx.stroke();
             }
-            // Manchas
             for (let i = 0; i < 40; i++) {
                 const x = Math.floor(Math.random() * 64);
                 const y = Math.floor(Math.random() * 64);
@@ -579,13 +574,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de PASTO — verde con briznas
         function texGrass() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#689f38';
             ctx.fillRect(0, 0, 64, 64);
-            // Briznas de pasto
             for (let i = 0; i < 100; i++) {
                 const x = Math.floor(Math.random() * 64);
                 const y = Math.floor(Math.random() * 64);
@@ -603,13 +596,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de MADERA — vetas verticales
         function texWood() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#a1887f';
             ctx.fillRect(0, 0, 64, 64);
-            // Vetas verticales
             for (let i = 0; i < 8; i++) {
                 const x = i * 8 + Math.random() * 4;
                 ctx.strokeStyle = Math.random() > 0.5 ? '#8d6e63' : '#6d4c41';
@@ -621,7 +612,6 @@
                 }
                 ctx.stroke();
             }
-            // Nudos
             for (let i = 0; i < 3; i++) {
                 const x = Math.random() * 64;
                 const y = Math.random() * 64;
@@ -636,7 +626,6 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de AGUA — reflejos y ondas
         function texWater() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
@@ -645,7 +634,6 @@
             grad.addColorStop(1, 'rgba(28, 100, 180, 0.9)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 64, 64);
-            // Ondas horizontales
             ctx.strokeStyle = 'rgba(255,255,255,0.25)';
             ctx.lineWidth = 1.5;
             for (let i = 0; i < 6; i++) {
@@ -659,13 +647,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de LAVA — fisuras ardientes
         function texLava() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#d84315';
             ctx.fillRect(0, 0, 64, 64);
-            // Manchas brillantes
             for (let i = 0; i < 40; i++) {
                 const x = Math.random() * 64;
                 const y = Math.random() * 64;
@@ -679,7 +665,6 @@
                 ctx.arc(x, y, r, 0, Math.PI * 2);
                 ctx.fill();
             }
-            // Fisuras oscuras
             ctx.strokeStyle = 'rgba(40, 10, 0, 0.7)';
             ctx.lineWidth = 2;
             for (let i = 0; i < 8; i++) {
@@ -697,23 +682,36 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de FUEGO — animada en varios frames
+        // ✅ Textura de ARENA ROJA
+        function texRedSand() {
+            const c = makeCanvas();
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#b8461e';
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < 200; i++) {
+                const x = Math.floor(Math.random() * 64);
+                const y = Math.floor(Math.random() * 64);
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255, 150, 80, 0.15)' : 'rgba(80, 20, 0, 0.2)';
+                ctx.fillRect(x, y, 2, 2);
+            }
+            ctx.strokeStyle = '#7a2e0f';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(2, 2, 60, 60);
+            return finalizeTex(c);
+        }
+
         function makeFireTexture() {
             const frames = [];
             const FRAME_COUNT = 5;
-
             for (let f = 0; f < FRAME_COUNT; f++) {
                 const c = makeCanvas();
                 const ctx = c.getContext('2d');
-                // Fondo naranja-rojo
                 const grad = ctx.createLinearGradient(0, 64, 0, 0);
                 grad.addColorStop(0, '#ff6f00');
                 grad.addColorStop(0.5, '#ffab00');
                 grad.addColorStop(1, '#ffea00');
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, 64, 64);
-
-                // Llamas en movimiento (frame-dependiente)
                 for (let i = 0; i < 30; i++) {
                     const x = Math.random() * 64;
                     const y = 64 - Math.random() * 40 - f * 4;
@@ -728,37 +726,25 @@
                     ctx.arc(x, y, r, 0, Math.PI * 2);
                     ctx.fill();
                 }
-
-                // Chispas
                 for (let i = 0; i < 15; i++) {
                     const x = Math.random() * 64;
                     const y = Math.random() * 40;
                     ctx.fillStyle = `rgba(255, 240, 100, ${0.5 + Math.random() * 0.5})`;
                     ctx.fillRect(x, y, 1.5, 1.5);
                 }
-
-                frames.push(c);
-            }
-
-            // Crear texturas individuales para usar como sprite sheet
-            const textures = frames.map(c => {
                 const tex = new THREE.CanvasTexture(c);
                 tex.magFilter = THREE.NearestFilter;
                 tex.minFilter = THREE.NearestFilter;
-                return tex;
-            });
-
-            return textures;
+                frames.push(tex);
+            }
+            return frames;
         }
 
-        // ✅ Textura única de PUERTA DE COBRE — con oxidación
         function texCopperDoor() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
-            // Base cobre
             ctx.fillStyle = '#b87333';
             ctx.fillRect(0, 0, 64, 64);
-            // Vetas de oxidación verdosa
             for (let i = 0; i < 30; i++) {
                 const x = Math.random() * 64;
                 const y = Math.random() * 64;
@@ -771,14 +757,10 @@
                 ctx.arc(x, y, r, 0, Math.PI * 2);
                 ctx.fill();
             }
-            // Remaches/paneles de puerta
             ctx.strokeStyle = '#5d3a1a';
             ctx.lineWidth = 3;
-            // Marco
             ctx.strokeRect(3, 3, 58, 58);
-            // Panel central
             ctx.strokeRect(15, 15, 34, 34);
-            // Perilla
             ctx.fillStyle = '#ffd54f';
             ctx.beginPath();
             ctx.arc(50, 32, 3, 0, Math.PI * 2);
@@ -786,14 +768,11 @@
             return finalizeTex(c);
         }
 
-        // ✅ Textura única de TRAMPILLA — rejilla plana
         function texTrapdoor() {
             const c = makeCanvas();
             const ctx = c.getContext('2d');
-            // Base madera oscura (se ve como parte del bloque)
             ctx.fillStyle = '#5d4037';
             ctx.fillRect(0, 0, 64, 64);
-            // Rejilla (líneas cruzándose)
             ctx.strokeStyle = '#3e2723';
             ctx.lineWidth = 2;
             for (let i = 0; i <= 64; i += 8) {
@@ -804,14 +783,12 @@
                 ctx.moveTo(0, i); ctx.lineTo(64, i);
                 ctx.stroke();
             }
-            // Reflejos en los cruces
             ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
             for (let x = 0; x <= 64; x += 8) {
                 for (let y = 0; y <= 64; y += 8) {
                     ctx.fillRect(x - 1, y - 1, 2, 2);
                 }
             }
-            // Marco
             ctx.strokeStyle = '#2d1b12';
             ctx.lineWidth = 3;
             ctx.strokeRect(2, 2, 60, 60);
@@ -825,12 +802,12 @@
             AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4,
             WOOD: 5, WATER: 6, LAVA: 7, PALM_WOOD: 8, PALM_LEAVES: 9,
             OBSIDIAN: 10,
-            FIRE: 11,           // ✅ NUEVO
-            COPPER_DOOR: 12,    // ✅ NUEVO
-            TRAPDOOR: 13        // ✅ NUEVO
+            FIRE: 11,
+            COPPER_DOOR: 12,
+            TRAPDOOR: 13,
+            RED_SAND: 14   // ✅ NUEVO
         };
 
-        // ✅ Texturas de fuego (frames)
         const FIRE_TEXTURES = makeFireTexture();
 
         const materialMap = {
@@ -838,6 +815,7 @@
             [BLOCK_TYPES.DIRT]:  new THREE.MeshLambertMaterial({ map: texDirt() }),
             [BLOCK_TYPES.STONE]: new THREE.MeshLambertMaterial({ map: texStone() }),
             [BLOCK_TYPES.SAND]:  new THREE.MeshLambertMaterial({ map: texNoise('#5d4037', '#3e2723') }),
+            [BLOCK_TYPES.RED_SAND]: new THREE.MeshLambertMaterial({ map: texRedSand() }),   // ✅
             [BLOCK_TYPES.WOOD]:  new THREE.MeshLambertMaterial({ map: texWood() }),
             [BLOCK_TYPES.WATER]: new THREE.MeshLambertMaterial({
                 map: texWater(),
@@ -858,26 +836,23 @@
                 map: texNoise('#1a0d2e', '#0d0618'),
                 emissive: 0x2a0d4a, emissiveIntensity: 0.25
             }),
-            // ✅ FUEGO — animado, emisivo, no sólido
             [BLOCK_TYPES.FIRE]: new THREE.MeshLambertMaterial({
                 map: FIRE_TEXTURES[0],
                 emissive: 0xff6f00, emissiveIntensity: 1.0,
                 transparent: true, opacity: 0.95,
                 depthWrite: false
             }),
-            // ✅ PUERTA DE COBRE
             [BLOCK_TYPES.COPPER_DOOR]: new THREE.MeshLambertMaterial({
                 map: texCopperDoor(),
                 emissive: 0x5a3a1a, emissiveIntensity: 0.15
             }),
-            // ✅ TRAMPILLA
             [BLOCK_TYPES.TRAPDOOR]: new THREE.MeshLambertMaterial({
                 map: texTrapdoor(),
                 transparent: true, opacity: 0.95
             })
         };
 
-        // ✅ Catálogo de la mochila (7 bloques específicos)
+        // ✅ Catálogo de la mochila
         const ALL_BLOCKS = [
             { type: BLOCK_TYPES.LAVA,        label: 'Lava',     color: 'linear-gradient(180deg, #ffea00, #ff6f00)' },
             { type: BLOCK_TYPES.WATER,       label: 'Agua',     color: 'linear-gradient(180deg, #80d8ff, #1c64b4)' },
@@ -886,14 +861,19 @@
             { type: BLOCK_TYPES.WOOD,        label: 'Madera',   color: '#a1887f' },
             { type: BLOCK_TYPES.GRASS,       label: 'Pasto',    color: '#689f38' },
             { type: BLOCK_TYPES.FIRE,        label: 'Fuego',    color: 'linear-gradient(180deg, #ffea00, #ff6f00)', isFire: true },
-            { type: BLOCK_TYPES.COPPER_DOOR, label: 'Puerta Cobre', color: '#b87333' },
-            { type: BLOCK_TYPES.TRAPDOOR,    label: 'Trampilla', color: '#5d4037' }
+            { type: BLOCK_TYPES.COPPER_DOOR, label: 'Puerta',   color: '#b87333' },   // ✅ ahora llamada "Puerta"
+            { type: BLOCK_TYPES.TRAPDOOR,    label: 'Trampilla', color: '#5d4037' },
+            { type: BLOCK_TYPES.RED_SAND,    label: 'Arena Roja', color: '#b8461e' }   // ✅ NUEVO
         ];
 
         const hotbar = new Array(HOTBAR_SIZE).fill(null);
         let selectedSlot = 0;
 
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+        // ✅ Geometría específica para trampilla (fina)
+        const trapdoorGeometry = new THREE.BoxGeometry(1, TRAPDOOR_THICKNESS, 1);
+        // ✅ Geometría específica para puerta (panel plano)
+        const doorGeometry = new THREE.BoxGeometry(1, 1, DOOR_THICKNESS);
 
         // ==========================================
         // MUNDO / CHUNKS
@@ -908,9 +888,7 @@
             if (b.type === BLOCK_TYPES.WATER) return false;
             if (b.type === BLOCK_TYPES.LAVA) return false;
             if (b.type === BLOCK_TYPES.FIRE) return false;
-            // ✅ Puerta: sólida solo si está cerrada
             if (b.type === BLOCK_TYPES.COPPER_DOOR) return !b.open;
-            // ✅ Trampilla: sólida solo si está cerrada
             if (b.type === BLOCK_TYPES.TRAPDOOR) return !b.open;
             return true;
         };
@@ -968,8 +946,6 @@
         }
 
         const dummy = new THREE.Object3D();
-        // ✅ Para la trampilla (escala en Y)
-        const dummyScaled = new THREE.Object3D();
 
         function rebuildChunk(chunk) {
             while (chunk.group.children.length > 0) {
@@ -994,14 +970,22 @@
                 const isFire = type === BLOCK_TYPES.FIRE;
                 const isPalmLeaves = type === BLOCK_TYPES.PALM_LEAVES;
                 const isTrapdoor = type === BLOCK_TYPES.TRAPDOOR;
+                const isDoor = type === BLOCK_TYPES.COPPER_DOOR;
 
-                const mesh = new THREE.InstancedMesh(blockGeometry, mat, list.length);
+                // ✅ Geometría específica según tipo
+                let geo = blockGeometry;
+                if (isTrapdoor) geo = trapdoorGeometry;
+                else if (isDoor) geo = doorGeometry;
+
+                const mesh = new THREE.InstancedMesh(geo, mat, list.length);
                 mesh.castShadow = !isWater && !isPalmLeaves && !isLava && !isFire;
                 mesh.receiveShadow = !isWater && !isLava && !isFire;
                 mesh.userData.isWater = isWater;
                 mesh.userData.isLava = isLava;
                 mesh.userData.isFire = isFire;
                 mesh.userData.isFluid = isWater || isLava;
+                mesh.userData.isTrapdoor = isTrapdoor;
+                mesh.userData.isDoor = isDoor;
 
                 const positions = [];
                 list.forEach((data, idx) => {
@@ -1012,16 +996,16 @@
                         yOffset = 0.5 - (1 - Math.min(lvl, max) / max) * 0.35;
                     }
                     if (isTrapdoor) {
-                        // ✅ Trampilla: escala fina y se apoya en el bloque de abajo
-                        dummyScaled.position.set(data.x + 0.5, data.y + TRAPDOOR_HEIGHT / 2, data.z + 0.5);
-                        dummyScaled.scale.set(1, TRAPDOOR_HEIGHT, 1);
-                        dummyScaled.updateMatrix();
-                        mesh.setMatrixAt(idx, dummyScaled.matrix);
-                    } else {
-                        dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
-                        dummy.updateMatrix();
-                        mesh.setMatrixAt(idx, dummy.matrix);
+                        // ✅ Trampilla plana pegada al bloque inferior
+                        yOffset = TRAPDOOR_THICKNESS / 2;
                     }
+                    if (isDoor) {
+                        // ✅ Puerta: panel plano, ligeramente desplazado al centro de la celda
+                        yOffset = 0.5;
+                    }
+                    dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(idx, dummy.matrix);
                     positions.push({ x: data.x, y: data.y, z: data.z });
                 });
                 mesh.instanceMatrix.needsUpdate = true;
@@ -1043,9 +1027,9 @@
         // ==========================================
         // GUARDADO
         // ==========================================
-        const SAVE_KEY_PREFIX = 'MCN_V9_CHUNK_';
-        const SAVE_META_KEY = 'MCN_V9_META';
-        const SAVE_VERSION = 5;
+        const SAVE_KEY_PREFIX = 'MCN_V10_CHUNK_';
+        const SAVE_META_KEY = 'MCN_V10_META';
+        const SAVE_VERSION = 6;
 
         function saveChunk(chunk) {
             const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
@@ -1099,7 +1083,6 @@
             const data = { x: bx, y: by, z: bz, type };
             if (level !== undefined) data.level = level;
             if (expiresAt !== undefined) data.expiresAt = expiresAt;
-            // ✅ Estado inicial para puertas y trampillas
             if (type === BLOCK_TYPES.COPPER_DOOR) data.open = false;
             if (type === BLOCK_TYPES.TRAPDOOR) { data.open = false; data.lastStepTime = 0; }
 
@@ -1124,7 +1107,7 @@
         }
 
         // ==========================================
-        // FÍSICA DE FLUIDOS + OBSIDIANA
+        // FÍSICA DE FLUIDOS + OBSIDIANA REAL
         // ==========================================
         const WATER_SOURCE = 7;
         const WATER_MIN_LEVEL = 1;
@@ -1156,6 +1139,8 @@
             return null;
         }
 
+        // ✅ OBSIDIANA REAL: reemplaza UN bloque por obsidiana
+        //    y elimina el bloque OPUESTO que estaba en contacto
         function convertToObsidian(x, y, z) {
             const key = getCoordKey(x, y, z);
             if (!blockMap.has(key)) return false;
@@ -1171,12 +1156,25 @@
             return true;
         }
 
+        // ✅ Convierte un fluido que llega a un contacto → obsidiana
+        //    Y elimina el fluido OPUESTO del vecino (así solo queda 1 obsidiana)
+        function handleFluidContact(x, y, z, oppositeX, oppositeY, oppositeZ, oppositeType) {
+            // 1) El bloque actual se convierte en obsidiana
+            convertToObsidian(x, y, z);
+            // 2) El bloque opuesto (el otro fluido) se ELIMINA
+            removeBlockFromWorld(oppositeX, oppositeY, oppositeZ);
+            // 3) Avisar a los vecinos de ambos
+            queueFluidNeighbors(x, y, z);
+            queueFluidNeighbors(oppositeX, oppositeY, oppositeZ);
+        }
+
         function setFluidAt(x, y, z, type, level) {
             const key = getCoordKey(x, y, z);
             const existing = blockMap.get(key);
 
+            // ✅ Si hay fluido opuesto, ambos se convierten en 1 obsidiana
             if (existing && isFluid(existing.type) && existing.type !== type) {
-                convertToObsidian(x, y, z);
+                handleFluidContact(x, y, z, x, y, z, existing.type);
                 return;
             }
             if (existing && existing.type !== type) return;
@@ -1234,6 +1232,7 @@
                 const maxLevel = getFluidMaxLevel(type);
                 const isLava = type === BLOCK_TYPES.LAVA;
 
+                // ✅ OBSIDIANA REAL: si algún vecino es opuesto, AMBOS se convierten
                 let converted = false;
                 const allNeighbors = [
                     [x+1,y,z],[x-1,y,z],[x,y+1,z],[x,y-1,z],[x,y,z+1],[x,y,z-1]
@@ -1241,7 +1240,9 @@
                 for (const [nx, ny, nz] of allNeighbors) {
                     const nb = getBlock(nx, ny, nz);
                     if (nb && nb.type === opposite) {
-                        convertToObsidian(x, y, z);
+                        // El bloque ACTUAL se convierte en obsidiana
+                        // Y el opuesto se ELIMINA (así solo queda 1 bloque nuevo)
+                        handleFluidContact(x, y, z, nx, ny, nz, opposite);
                         converted = true;
                         break;
                     }
@@ -1289,7 +1290,7 @@
         }
 
         // ==========================================
-        // GENERACIÓN DEL MUNDO (sin anillo)
+        // GENERACIÓN DEL MUNDO (Volcán clásico)
         // ==========================================
         function hash2D(x, z) {
             const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
@@ -1317,13 +1318,12 @@
 
         const VOLCANO_X = WORLD_SIZE / 2 + 30;
         const VOLCANO_Z = WORLD_SIZE / 2 - 20;
-        const VOLCANO_RADIUS = 36;
-        const VOLCANO_HEIGHT = 44;
+        const VOLCANO_RADIUS = 32;
+        const VOLCANO_HEIGHT = 38;
 
-        const CRATER_RADIUS_TOP = 14;
-        const CRATER_RADIUS_BOTTOM = 4;
-        const CRATER_DEPTH = 22;
-        const LAVA_POOL_DEPTH = 4;
+        // ✅ Volcán clásico: cráter pequeño poco profundo
+        const CRATER_RADIUS = 5;
+        const CRATER_DEPTH = 3;
 
         function placePalmTree(x, baseY, z) {
             const height = 4 + Math.floor(hash2D(x * 3.1, z * 5.7) * 3);
@@ -1346,7 +1346,7 @@
 
             let lastProgress = 0;
 
-            // ---- PASO 1: terreno base ----
+            // ---- PASO 1: terreno base con volcán clásico ----
             for (let x = 0; x < WORLD_SIZE; x++) {
                 for (let z = 0; z < WORLD_SIZE; z++) {
                     const dx = x - centerX;
@@ -1363,24 +1363,33 @@
 
                     let elevation = Math.floor(SEA_LEVEL - 3 + shaped * (8 + heightNoise * 5));
 
+                    // ✅ Volcán clásico: cono sólido con pendiente suave
                     const dvx = x - VOLCANO_X;
                     const dvz = z - VOLCANO_Z;
                     const distToVolcano = Math.sqrt(dvx * dvx + dvz * dvz);
                     const isVolcanoZone = distToVolcano < VOLCANO_RADIUS;
 
                     if (isVolcanoZone) {
+                        // Perfil cónico con smoothstep para pendiente natural
                         const t = 1 - (distToVolcano / VOLCANO_RADIUS);
-                        const coneHeight = t * t * VOLCANO_HEIGHT;
+                        const smooth = t * t * (3 - 2 * t);   // smoothstep
+                        const coneHeight = smooth * VOLCANO_HEIGHT;
                         elevation = Math.max(elevation, Math.floor(SEA_LEVEL + coneHeight));
                     }
 
+                    // Mezcla de materiales en el volcán
                     const volcanoMix = isVolcanoZone ? fbm(x * 0.25, z * 0.25, 3) : 0;
 
                     for (let y = 0; y < elevation; y++) {
                         let type;
                         if (y === elevation - 1) {
                             if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                                type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
+                                // Cerca de la base → RED_SAND; laderas altas → piedra/tierra
+                                if (elevation < SEA_LEVEL + 12) {
+                                    type = BLOCK_TYPES.RED_SAND;
+                                } else {
+                                    type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
+                                }
                             } else if (elevation <= BEACH_UPPER) {
                                 type = BLOCK_TYPES.SAND;
                             } else {
@@ -1388,7 +1397,11 @@
                             }
                         } else if (y >= elevation - 4) {
                             if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                                type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
+                                if (elevation < SEA_LEVEL + 12) {
+                                    type = BLOCK_TYPES.RED_SAND;
+                                } else {
+                                    type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
+                                }
                             } else {
                                 type = elevation <= BEACH_UPPER ? BLOCK_TYPES.SAND : BLOCK_TYPES.DIRT;
                             }
@@ -1412,32 +1425,31 @@
                 }
             }
 
-            // ---- PASO 2: tallar cráter cónico (🔧 SIN ANILLO) ----
+            // ---- PASO 2: cráter pequeño del volcán clásico ----
             const craterTopY = SEA_LEVEL + VOLCANO_HEIGHT;
             const craterBottomY = craterTopY - CRATER_DEPTH;
 
-            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS_TOP - 2); x <= Math.floor(VOLCANO_X + CRATER_RADIUS_TOP + 2); x++) {
-                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS_TOP - 2); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS_TOP + 2); z++) {
+            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 1); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 1); x++) {
+                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 1); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 1); z++) {
                     if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
                     const dvx = x - VOLCANO_X;
                     const dvz = z - VOLCANO_Z;
                     const distToCenter = Math.sqrt(dvx * dvx + dvz * dvz);
 
-                    for (let y = craterBottomY; y <= craterTopY + 2; y++) {
-                        const t = (craterTopY - y) / CRATER_DEPTH;
-                        const radiusAtY = CRATER_RADIUS_TOP + (CRATER_RADIUS_BOTTOM - CRATER_RADIUS_TOP) * Math.max(0, Math.min(1, t));
-
-                        if (distToCenter < radiusAtY) {
+                    if (distToCenter < CRATER_RADIUS) {
+                        // Vaciado del cráter
+                        for (let y = craterBottomY; y <= craterTopY + 2; y++) {
                             if (getBlock(x, y, z)) removeBlockFromWorld(x, y, z);
-                            if (y <= craterBottomY + LAVA_POOL_DEPTH && distToCenter < radiusAtY - 1) {
+                        }
+                        // Lava al fondo del cráter
+                        if (distToCenter < CRATER_RADIUS - 1) {
+                            for (let y = craterBottomY; y < craterBottomY + 2; y++) {
                                 if (!getBlock(x, y, z)) addBlockToWorld(x, y, z, BLOCK_TYPES.LAVA, LAVA_SOURCE);
                             }
                         }
                     }
                 }
             }
-
-            // 🔧 ELIMINADO: el bucle de "reforzar anillo" ya no está.
 
             if (onProgress) onProgress(75);
 
@@ -1610,7 +1622,6 @@
             return isWaterAt(cx, feetY, cz) || isWaterAt(cx, midY, cz) || isWaterAt(cx, eyeY, cz);
         }
 
-        // ✅ Chequeo de lava O fuego (ambos matan)
         function isPlayerInLava() {
             const cx = Math.floor(camera.position.x);
             const cz = Math.floor(camera.position.z);
@@ -1631,7 +1642,6 @@
         // ==========================================
         // PUERTAS Y TRAMPILLAS
         // ==========================================
-        // ✅ Recorre todas las puertas y trampillas y actualiza su estado
         function updateDoorsAndTrapdoors() {
             const now = performance.now();
             const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
@@ -1639,7 +1649,6 @@
             let anyChanged = false;
 
             for (const [key, block] of blockMap.entries()) {
-                // ---- PUERTA DE COBRE ----
                 if (block.type === BLOCK_TYPES.COPPER_DOOR) {
                     const dx = (block.x + 0.5) - px;
                     const dy = (block.y + 0.5) - py;
@@ -1659,17 +1668,13 @@
                     }
                 }
 
-                // ---- TRAMPILLA ----
                 if (block.type === BLOCK_TYPES.TRAPDOOR) {
-                    // ¿El jugador está pisándola?
-                    // La trampilla ocupa la celda (block.x, block.y, block.z) con altura mínima
-                    // El jugador la pisa si está justo encima
                     const feetY = py - PLAYER_HEIGHT;
                     const onTop = (
                         Math.abs(px - (block.x + 0.5)) < 0.6 &&
                         Math.abs(pz - (block.z + 0.5)) < 0.6 &&
-                        feetY >= block.y + TRAPDOOR_HEIGHT - 0.15 &&
-                        feetY <= block.y + TRAPDOOR_HEIGHT + 0.35
+                        feetY >= block.y + TRAPDOOR_THICKNESS - 0.15 &&
+                        feetY <= block.y + TRAPDOOR_THICKNESS + 0.35
                     );
 
                     if (onTop) {
@@ -1999,17 +2004,17 @@
                 const target = getTargetBlock();
                 if (!target) return;
 
-                // ✅ Trampilla: colocarla sobre la cara superior de un bloque
+                // ✅ Trampilla: colocarla pegada al bloque golpeado
                 if (slot.type === BLOCK_TYPES.TRAPDOOR) {
                     if (target.normal.y === 1) {
-                        // Colocar en la celda del bloque golpeado, con flag trapdoor
-                        // (para que ocupe la celda pero solo la parte de abajo)
                         const bx = target.x, by = target.y, bz = target.z;
                         const key = getCoordKey(bx, by, bz);
                         const existing = blockMap.get(key);
-                        if (!existing) {
-                            addBlock(bx, by, bz, BLOCK_TYPES.TRAPDOOR);
-                        }
+                        if (existing && !isFluid(existing.type)) return;
+                        // Reemplazar si es fluido
+                        if (existing) removeBlockFromWorld(bx, by, bz);
+                        // Colocar trampilla en la MISMA celda (queda plana al fondo)
+                        addBlockToWorld(bx, by, bz, BLOCK_TYPES.TRAPDOOR);
                     }
                     return;
                 }
@@ -2126,7 +2131,7 @@
         // ==========================================
         let fireFrameIndex = 0;
         let lastFireFrameTime = 0;
-        const FIRE_FRAME_INTERVAL = 150;  // ms
+        const FIRE_FRAME_INTERVAL = 150;
 
         function updateFireAnimation() {
             const now = performance.now();
@@ -2134,7 +2139,6 @@
             lastFireFrameTime = now;
             fireFrameIndex = (fireFrameIndex + 1) % FIRE_TEXTURES.length;
 
-            // ✅ Aplicar la nueva textura al material de fuego
             const mat = materialMap[BLOCK_TYPES.FIRE];
             if (mat && mat.map !== FIRE_TEXTURES[fireFrameIndex]) {
                 mat.map = FIRE_TEXTURES[fireFrameIndex];
@@ -2214,7 +2218,7 @@
         let saveAccumulator = 0;
         const SAVE_TICK_RATE = 3.0;
         let doorAccumulator = 0;
-        const DOOR_TICK_RATE = 0.1;   // ✅ 10 veces/s
+        const DOOR_TICK_RATE = 0.1;
 
         const waterOverlay = document.getElementById('waterOverlay');
         let overlayActive = false;
@@ -2241,7 +2245,6 @@
             const processed = processDirtyChunks(4);
             if (processed > 0) updateCounters();
 
-            // Fuego animado
             updateFireAnimation();
 
             fluidAccumulator += delta;
@@ -2251,7 +2254,6 @@
                 while (tickFluids() && it < 5) it++;
             }
 
-            // ✅ Puertas y trampillas (10 Hz)
             doorAccumulator += delta;
             if (doorAccumulator >= DOOR_TICK_RATE) {
                 doorAccumulator = 0;
@@ -2283,7 +2285,6 @@
                 const inLava = isPlayerInLava();
                 if (inLava) {
                     lavaOverlay.classList.add('active');
-                    // Detectar si es fuego o lava para el mensaje
                     const cx = Math.floor(camera.position.x);
                     const cz = Math.floor(camera.position.z);
                     const by = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.5);
@@ -2387,7 +2388,7 @@
                 }
             }
 
-            renderer.render(scene, camera);
+            renderer.scene && renderer.render(scene, camera);
         }
 
         // ==========================================
