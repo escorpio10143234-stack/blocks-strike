@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minecraft 3D - Volcán Clásico + Puerta/Trampilla Planas</title>
+    <title>Minecraft 3D - Volcán + Obsidiana + Trampilla</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
@@ -17,16 +17,18 @@
         #waterOverlay {
             position: absolute; inset: 0;
             background: rgba(30, 90, 160, 0.45);
-            pointer-events: none; opacity: 0;
-            transition: opacity 0.25s ease; z-index: 8;
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.25s ease;
+            z-index: 8;
         }
         #waterOverlay.active { opacity: 1; }
 
         #lavaOverlay {
             position: absolute; inset: 0;
             background: rgba(180, 40, 5, 0.55);
-            pointer-events: none; opacity: 0;
-            transition: opacity 0.1s ease; z-index: 9;
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.1s ease;
+            z-index: 9;
         }
         #lavaOverlay.active { opacity: 1; }
 
@@ -92,18 +94,19 @@
             backdrop-filter: blur(6px);
         }
         .slot {
-            width: 54px; height: 54px;
+            width: 52px; height: 52px;
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             color: #fff; font-size: 9px;
-            position: relative; overflow: hidden;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
         }
-        .slot.empty { opacity: 0.4; }
         .slot .swatch {
-            width: 28px; height: 28px;
+            width: 24px; height: 24px;
             border-radius: 4px; margin-bottom: 2px;
             box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3);
         }
@@ -119,7 +122,7 @@
         }
 
         #blockInfo {
-            position: absolute; bottom: 100px; left: 50%;
+            position: absolute; bottom: 90px; left: 50%;
             transform: translateX(-50%);
             color: #fff; font-size: 12px;
             background: rgba(0, 0, 0, 0.6);
@@ -154,9 +157,11 @@
         #deathScreen {
             position: absolute; inset: 0;
             background: rgba(80, 10, 10, 0.75);
-            z-index: 35; display: none;
-            flex-direction: column; justify-content: center;
-            align-items: center; pointer-events: none;
+            z-index: 35;
+            display: none;
+            flex-direction: column;
+            justify-content: center; align-items: center;
+            pointer-events: none;
             backdrop-filter: blur(4px);
         }
         #deathScreen.active { display: flex; }
@@ -184,175 +189,11 @@
             padding: 10px 24px; border-radius: 10px;
             border: 2px solid #ff5722;
             box-shadow: 0 0 25px rgba(255, 87, 34, 0.7);
-            z-index: 15; opacity: 0; transition: opacity 0.5s ease;
+            z-index: 15; opacity: 0;
+            transition: opacity 0.5s ease;
             pointer-events: none;
         }
         #eruptionWarning.active { opacity: 1; }
-
-        #backpackBtn {
-            position: absolute;
-            top: 20px; right: 20px;
-            width: 48px; height: 48px;
-            background: rgba(60, 40, 20, 0.85);
-            border: 2px solid #8d6e4a;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; cursor: pointer;
-            z-index: 16; transition: all 0.15s ease;
-            user-select: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        #backpackBtn:hover {
-            background: rgba(120, 80, 40, 0.95);
-            transform: scale(1.08);
-        }
-        #backpackBtn.hidden { display: none; }
-
-        #inventoryOverlay {
-            position: absolute; inset: 0;
-            background: rgba(10, 10, 15, 0.85);
-            backdrop-filter: blur(12px);
-            z-index: 25; display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #fff; user-select: none;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        #inventoryOverlay.active { display: flex; }
-        #inventoryOverlay .inv-title {
-            font-size: 28px; font-weight: 700;
-            margin-bottom: 8px; letter-spacing: 1px;
-        }
-        #inventoryOverlay .inv-subtitle {
-            font-size: 14px; opacity: 0.7;
-            margin-bottom: 24px; text-align: center;
-        }
-        #inventoryOverlay .inv-section-title {
-            font-size: 13px; letter-spacing: 2px;
-            opacity: 0.65; margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        #inventoryOverlay .inv-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-            gap: 10px;
-            max-width: 720px; padding: 20px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 14px; margin-bottom: 24px;
-        }
-        .inv-block {
-            width: 78px; height: 78px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            color: #fff; font-size: 10px;
-            transition: all 0.15s ease;
-            cursor: pointer; padding: 4px;
-            position: relative;
-        }
-        .inv-block:hover {
-            background: rgba(255, 213, 79, 0.15);
-            border-color: #ffd54f;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(255, 213, 79, 0.3);
-        }
-        .inv-block .swatch {
-            width: 36px; height: 36px;
-            border-radius: 5px; margin-bottom: 4px;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
-            background-size: cover;
-        }
-        .inv-block .swatch.fire-anim {
-            animation: fireFlicker 0.6s infinite alternate;
-        }
-        @keyframes fireFlicker {
-            0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.05); filter: brightness(1.3); }
-        }
-        .inv-block .label { font-size: 9px; opacity: 0.9; }
-        .inv-block.assigned {
-            border-color: #4caf50;
-            box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
-        }
-        .inv-block.assigned::after {
-            content: '✓';
-            position: absolute; top: 2px; right: 4px;
-            color: #4caf50; font-size: 12px; font-weight: 700;
-        }
-
-        #inventoryOverlay .inv-hotbar-section {
-            display: flex; flex-direction: column;
-            align-items: center; margin-bottom: 24px;
-        }
-        #invHotbar {
-            display: flex; gap: 8px; padding: 10px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        .inv-hotbar-slot {
-            width: 64px; height: 64px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            color: #fff; font-size: 9px;
-            cursor: pointer; transition: all 0.15s ease;
-            position: relative;
-        }
-        .inv-hotbar-slot.filled {
-            border-style: solid;
-            border-color: rgba(255, 255, 255, 0.4);
-            background: rgba(255, 255, 255, 0.08);
-        }
-        .inv-hotbar-slot:hover {
-            border-color: #ff7b7b;
-            background: rgba(255, 100, 100, 0.1);
-        }
-        .inv-hotbar-slot .swatch {
-            width: 32px; height: 32px;
-            border-radius: 5px; margin-bottom: 2px;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
-        }
-        .inv-hotbar-slot .key {
-            position: absolute; top: 2px; left: 4px;
-            font-size: 9px; opacity: 0.6;
-        }
-        .inv-hotbar-slot .empty-mark {
-            font-size: 20px; opacity: 0.3;
-        }
-
-        #closeInventoryBtn {
-            background: #4caf50; color: #fff;
-            border: none; padding: 12px 32px;
-            font-size: 15px; font-weight: 600;
-            border-radius: 8px; cursor: pointer;
-            transition: all 0.15s ease;
-            letter-spacing: 1px;
-        }
-        #closeInventoryBtn:hover {
-            background: #388e3c; transform: scale(1.05);
-        }
-
-        #invToast {
-            position: absolute; bottom: 30px; left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: rgba(180, 40, 40, 0.9);
-            color: #fff; padding: 8px 20px;
-            border-radius: 8px; font-size: 13px;
-            opacity: 0; transition: all 0.3s ease;
-            pointer-events: none;
-        }
-        #invToast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
     </style>
 </head>
 <body>
@@ -366,10 +207,11 @@
             <div class="title" id="enter-btn">⛏️ HAZ CLIC AQUÍ PARA ENTRAR</div>
             <div class="subtitle">Presiona ESC para liberar el ratón</div>
             <div class="controls-card">
-                <b>WASD</b>: Moverse &nbsp;|&nbsp; <b>ESPACIO</b>: Saltar &nbsp;|&nbsp; <b>↑ / ↓</b>: Nadar<br>
-                <b>1-8</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
-                <b>ENTER</b>: Romper &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar fluidos &nbsp;|&nbsp; <b>B</b>: Mochila<br>
-                <b style="color:#ff5722">⚠️ Lava y fuego matan</b>
+                <b>WASD</b>: Moverse &nbsp;|&nbsp; <b>ESPACIO</b>: Saltar<br>
+                <b>↑ / ↓</b>: Subir / Sumergirse (en agua)<br>
+                <b>1-7</b> / <b>RUEDA</b>: Cambiar bloque &nbsp;|&nbsp; <b>CLIC IZQ</b>: Colocar<br>
+                <b>ENTER</b>: Romper sólidos &nbsp;|&nbsp; <b style="color:#4dd0e1">Q</b>: Vaciar agua/lava<br>
+                <b style="color:#ff5722">⚠️ La lava mata</b> &nbsp;|&nbsp; <b style="color:#9c27b0">🔮 Obsidiana</b> = lava+agua
             </div>
             <button id="reset-btn">🔄 Resetear Mundo</button>
         </div>
@@ -377,35 +219,17 @@
         <div id="waterOverlay"></div>
         <div id="lavaOverlay"></div>
         <div id="deathScreen">
-            <div class="message" id="deathMessage">💀 MORISTE 💀</div>
+            <div class="message">💀 MORISTE POR LAVA 💀</div>
             <div class="timer" id="deathTimer">5</div>
             <div class="sub">Reapareciendo en el centro de la isla...</div>
         </div>
         <div id="eruptionWarning">🌋 ¡ERUPCIÓN VOLCÁNICA EN CURSO! 🌋</div>
 
-        <div id="backpackBtn" title="Inventario (B)">🎒</div>
-
         <div id="crosshair"></div>
-        <div id="info">🎮 Chunks: <span id="chunkCount">0</span> &nbsp;|&nbsp; Bloques: <span id="blockCount">0</span> &nbsp;|&nbsp; Agua: <span id="waterCount">0</span> &nbsp;|&nbsp; Lava: <span id="lavaCount">0</span></div>
+        <div id="info">🎮 Chunks: <span id="chunkCount">0</span> &nbsp;|&nbsp; Bloques: <span id="blockCount">0</span> &nbsp;|&nbsp; Agua: <span id="waterCount">0</span> &nbsp;|&nbsp; Lava: <span id="lavaCount">0</span> &nbsp;|&nbsp; Obsidiana: <span id="obsidianCount">0</span></div>
         <div id="blockInfo"></div>
 
         <div id="hotbar"></div>
-    </div>
-
-    <div id="inventoryOverlay">
-        <div class="inv-title">🎒 MOCHILA</div>
-        <div class="inv-subtitle">Clic en un bloque para asignarlo · Clic en la hotbar para vaciar</div>
-
-        <div class="inv-section-title">Bloques disponibles</div>
-        <div class="inv-grid" id="invGrid"></div>
-
-        <div class="inv-section-title">Tu hotbar (8 espacios)</div>
-        <div class="inv-hotbar-section">
-            <div id="invHotbar"></div>
-        </div>
-
-        <button id="closeInventoryBtn">CERRAR Y JUGAR</button>
-        <div id="invToast"></div>
     </div>
 
     <script type="importmap">
@@ -430,14 +254,6 @@
         const LAVA_LIFETIME_MS = 5 * 60 * 1000;
         const DEATH_DURATION_MS = 5000;
         const FIRST_ERUPTION_DELAY_MS = 60 * 1000;
-        const HOTBAR_SIZE = 8;
-
-        const DOOR_TRIGGER_DISTANCE = 2.0;
-        const TRAPDOOR_CLOSE_DELAY = 300;
-
-        // ✅ Grosores planos
-        const DOOR_THICKNESS = 0.15;      // puerta (panel)
-        const TRAPDOOR_THICKNESS = 0.0625; // trampilla (rejilla fina)
 
         // ==========================================
         // ESCENA
@@ -465,13 +281,10 @@
         const blocker = document.getElementById('blocker');
         blocker.addEventListener('click', (e) => {
             if (e.target.id === 'reset-btn') return;
-            if (isInventoryOpen) return;
             controls.lock();
         });
         controls.addEventListener('lock', () => blocker.classList.add('hidden'));
-        controls.addEventListener('unlock', () => {
-            if (!isInventoryOpen) blocker.classList.remove('hidden');
-        });
+        controls.addEventListener('unlock', () => blocker.classList.remove('hidden'));
 
         // ==========================================
         // LUZ
@@ -495,20 +308,10 @@
         // ==========================================
         // TEXTURAS
         // ==========================================
-        function makeCanvas() {
-            const c = document.createElement('canvas');
-            c.width = 64; c.height = 64;
-            return c;
-        }
-        function finalizeTex(c) {
-            const tex = new THREE.CanvasTexture(c);
-            tex.magFilter = THREE.NearestFilter;
-            tex.minFilter = THREE.NearestFilter;
-            return tex;
-        }
-        function texNoise(baseColor, borderColor, noiseAmount = 150) {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
+        function generateBlockTexture(baseColor, borderColor, noiseAmount = 150) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
             ctx.fillStyle = baseColor;
             ctx.fillRect(0, 0, 64, 64);
             for (let i = 0; i < noiseAmount; i++) {
@@ -522,358 +325,103 @@
                 ctx.lineWidth = 4;
                 ctx.strokeRect(2, 2, 60, 60);
             }
-            return finalizeTex(c);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
         }
 
-        function texDirt() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#795548';
-            ctx.fillRect(0, 0, 64, 64);
-            for (let i = 0; i < 60; i++) {
-                const x = Math.floor(Math.random() * 60);
-                const y = Math.floor(Math.random() * 60);
-                const size = 2 + Math.random() * 4;
-                ctx.fillStyle = Math.random() > 0.5 ? '#5d4037' : '#8d6e63';
-                ctx.fillRect(x, y, size, size);
-            }
-            ctx.strokeStyle = '#3e2723';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
-        }
-
-        function texStone() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#9e9e9e';
-            ctx.fillRect(0, 0, 64, 64);
-            ctx.strokeStyle = 'rgba(60,60,60,0.6)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 12; i++) {
-                ctx.beginPath();
-                let x = Math.random() * 64;
-                let y = Math.random() * 64;
-                ctx.moveTo(x, y);
-                for (let j = 0; j < 4; j++) {
-                    x += (Math.random() - 0.5) * 20;
-                    y += (Math.random() - 0.5) * 20;
-                    ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-            for (let i = 0; i < 40; i++) {
-                const x = Math.floor(Math.random() * 64);
-                const y = Math.floor(Math.random() * 64);
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.1)';
-                ctx.fillRect(x, y, 3, 3);
-            }
-            ctx.strokeStyle = '#616161';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
-        }
-
-        function texGrass() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#689f38';
-            ctx.fillRect(0, 0, 64, 64);
-            for (let i = 0; i < 100; i++) {
-                const x = Math.floor(Math.random() * 64);
-                const y = Math.floor(Math.random() * 64);
-                const h = 2 + Math.random() * 4;
-                ctx.strokeStyle = Math.random() > 0.5 ? '#7cb342' : '#558b2f';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + (Math.random() - 0.5) * 2, y - h);
-                ctx.stroke();
-            }
-            ctx.strokeStyle = '#33691e';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
-        }
-
-        function texWood() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#a1887f';
-            ctx.fillRect(0, 0, 64, 64);
-            for (let i = 0; i < 8; i++) {
-                const x = i * 8 + Math.random() * 4;
-                ctx.strokeStyle = Math.random() > 0.5 ? '#8d6e63' : '#6d4c41';
-                ctx.lineWidth = 1 + Math.random() * 1.5;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                for (let y = 0; y <= 64; y += 8) {
-                    ctx.lineTo(x + (Math.random() - 0.5) * 3, y);
-                }
-                ctx.stroke();
-            }
-            for (let i = 0; i < 3; i++) {
-                const x = Math.random() * 64;
-                const y = Math.random() * 64;
-                ctx.fillStyle = '#5d4037';
-                ctx.beginPath();
-                ctx.ellipse(x, y, 3, 5, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.strokeStyle = '#5d4037';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
-        }
-
-        function texWater() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
+        function generateWaterTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
             const grad = ctx.createLinearGradient(0, 0, 0, 64);
-            grad.addColorStop(0, 'rgba(80, 180, 230, 0.85)');
+            grad.addColorStop(0, 'rgba(64, 164, 223, 0.85)');
             grad.addColorStop(1, 'rgba(28, 100, 180, 0.9)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 64, 64);
-            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i < 6; i++) {
-                const y = i * 10 + Math.random() * 4;
-                ctx.beginPath();
-                for (let x = 0; x <= 64; x += 4) {
-                    ctx.lineTo(x, y + Math.sin(x * 0.5 + i) * 2);
-                }
-                ctx.stroke();
-            }
-            return finalizeTex(c);
-        }
-
-        function texLava() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#d84315';
-            ctx.fillRect(0, 0, 64, 64);
             for (let i = 0; i < 40; i++) {
                 const x = Math.random() * 64;
                 const y = Math.random() * 64;
-                const r = 3 + Math.random() * 6;
-                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-                g.addColorStop(0, '#ffb74d');
-                g.addColorStop(0.6, '#ff5722');
-                g.addColorStop(1, 'rgba(191, 54, 12, 0)');
-                ctx.fillStyle = g;
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(x, y, 6, 2);
             }
-            ctx.strokeStyle = 'rgba(40, 10, 0, 0.7)';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 8; i++) {
-                ctx.beginPath();
-                let x = Math.random() * 64;
-                let y = Math.random() * 64;
-                ctx.moveTo(x, y);
-                for (let j = 0; j < 3; j++) {
-                    x += (Math.random() - 0.5) * 20;
-                    y += (Math.random() - 0.5) * 20;
-                    ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-            return finalizeTex(c);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
         }
 
-        // ✅ Textura de ARENA ROJA
-        function texRedSand() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#b8461e';
+        // ✅ TEXTURA obsidiana: morado oscuro con vetas púrpuras
+        function generateObsidianTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2a1a3a';
             ctx.fillRect(0, 0, 64, 64);
-            for (let i = 0; i < 200; i++) {
+            // Vetas púrpuras más claras
+            for (let i = 0; i < 60; i++) {
                 const x = Math.floor(Math.random() * 64);
                 const y = Math.floor(Math.random() * 64);
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255, 150, 80, 0.15)' : 'rgba(80, 20, 0, 0.2)';
-                ctx.fillRect(x, y, 2, 2);
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(90, 50, 130, 0.4)' : 'rgba(20, 10, 30, 0.5)';
+                ctx.fillRect(x, y, 3, 1);
             }
-            ctx.strokeStyle = '#7a2e0f';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#1a0f2a';
+            ctx.lineWidth = 4;
             ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
-        }
-
-        function makeFireTexture() {
-            const frames = [];
-            const FRAME_COUNT = 5;
-            for (let f = 0; f < FRAME_COUNT; f++) {
-                const c = makeCanvas();
-                const ctx = c.getContext('2d');
-                const grad = ctx.createLinearGradient(0, 64, 0, 0);
-                grad.addColorStop(0, '#ff6f00');
-                grad.addColorStop(0.5, '#ffab00');
-                grad.addColorStop(1, '#ffea00');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, 64, 64);
-                for (let i = 0; i < 30; i++) {
-                    const x = Math.random() * 64;
-                    const y = 64 - Math.random() * 40 - f * 4;
-                    const r = 3 + Math.random() * 8;
-                    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-                    const hue = 20 + Math.random() * 30;
-                    g.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.9)`);
-                    g.addColorStop(0.5, `hsla(${hue}, 100%, 50%, 0.6)`);
-                    g.addColorStop(1, 'rgba(255, 100, 0, 0)');
-                    ctx.fillStyle = g;
-                    ctx.beginPath();
-                    ctx.arc(x, y, r, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                for (let i = 0; i < 15; i++) {
-                    const x = Math.random() * 64;
-                    const y = Math.random() * 40;
-                    ctx.fillStyle = `rgba(255, 240, 100, ${0.5 + Math.random() * 0.5})`;
-                    ctx.fillRect(x, y, 1.5, 1.5);
-                }
-                const tex = new THREE.CanvasTexture(c);
-                tex.magFilter = THREE.NearestFilter;
-                tex.minFilter = THREE.NearestFilter;
-                frames.push(tex);
-            }
-            return frames;
-        }
-
-        function texCopperDoor() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#b87333';
-            ctx.fillRect(0, 0, 64, 64);
-            for (let i = 0; i < 30; i++) {
-                const x = Math.random() * 64;
-                const y = Math.random() * 64;
-                const r = 3 + Math.random() * 8;
-                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-                g.addColorStop(0, 'rgba(90, 160, 130, 0.6)');
-                g.addColorStop(1, 'rgba(90, 160, 130, 0)');
-                ctx.fillStyle = g;
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.strokeStyle = '#5d3a1a';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(3, 3, 58, 58);
-            ctx.strokeRect(15, 15, 34, 34);
-            ctx.fillStyle = '#ffd54f';
-            ctx.beginPath();
-            ctx.arc(50, 32, 3, 0, Math.PI * 2);
-            ctx.fill();
-            return finalizeTex(c);
-        }
-
-        function texTrapdoor() {
-            const c = makeCanvas();
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#5d4037';
-            ctx.fillRect(0, 0, 64, 64);
-            ctx.strokeStyle = '#3e2723';
-            ctx.lineWidth = 2;
-            for (let i = 0; i <= 64; i += 8) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0); ctx.lineTo(i, 64);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i); ctx.lineTo(64, i);
-                ctx.stroke();
-            }
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            for (let x = 0; x <= 64; x += 8) {
-                for (let y = 0; y <= 64; y += 8) {
-                    ctx.fillRect(x - 1, y - 1, 2, 2);
-                }
-            }
-            ctx.strokeStyle = '#2d1b12';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(2, 2, 60, 60);
-            return finalizeTex(c);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.NearestFilter;
+            return tex;
         }
 
         // ==========================================
         // BLOQUES
         // ==========================================
         const BLOCK_TYPES = {
-            AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, SAND: 4,
-            WOOD: 5, WATER: 6, LAVA: 7, PALM_WOOD: 8, PALM_LEAVES: 9,
-            OBSIDIAN: 10,
-            FIRE: 11,
-            COPPER_DOOR: 12,
-            TRAPDOOR: 13,
-            RED_SAND: 14   // ✅ NUEVO
+            AIR: 0, GRASS: 1, DIRT: 2, STONE: 3,
+            WATER: 4, LAVA: 5, OBSIDIAN: 6, TRAPDOOR: 7
         };
 
-        const FIRE_TEXTURES = makeFireTexture();
-
         const materialMap = {
-            [BLOCK_TYPES.GRASS]: new THREE.MeshLambertMaterial({ map: texGrass() }),
-            [BLOCK_TYPES.DIRT]:  new THREE.MeshLambertMaterial({ map: texDirt() }),
-            [BLOCK_TYPES.STONE]: new THREE.MeshLambertMaterial({ map: texStone() }),
-            [BLOCK_TYPES.SAND]:  new THREE.MeshLambertMaterial({ map: texNoise('#5d4037', '#3e2723') }),
-            [BLOCK_TYPES.RED_SAND]: new THREE.MeshLambertMaterial({ map: texRedSand() }),   // ✅
-            [BLOCK_TYPES.WOOD]:  new THREE.MeshLambertMaterial({ map: texWood() }),
+            [BLOCK_TYPES.GRASS]: new THREE.MeshLambertMaterial({ map: generateBlockTexture('#689f38', '#33691e') }),
+            [BLOCK_TYPES.DIRT]:  new THREE.MeshLambertMaterial({ map: generateBlockTexture('#795548', '#4e342e') }),
+            [BLOCK_TYPES.STONE]: new THREE.MeshLambertMaterial({ map: generateBlockTexture('#9e9e9e', '#424242') }),
             [BLOCK_TYPES.WATER]: new THREE.MeshLambertMaterial({
-                map: texWater(),
+                map: generateWaterTexture(),
                 transparent: true, opacity: 0.75, depthWrite: false
             }),
             [BLOCK_TYPES.LAVA]: new THREE.MeshLambertMaterial({
-                map: texLava(),
+                map: generateBlockTexture('#ff5722', '#bf360c'),
                 emissive: 0xff5722, emissiveIntensity: 0.9
             }),
-            [BLOCK_TYPES.PALM_WOOD]: new THREE.MeshLambertMaterial({
-                map: texNoise('#c8a678', '#8d6e4a')
-            }),
-            [BLOCK_TYPES.PALM_LEAVES]: new THREE.MeshLambertMaterial({
-                map: texNoise('#4caf50', '#2e7d32'),
-                transparent: true, opacity: 0.9
-            }),
+            // ✅ Obsidiana: morado oscuro
             [BLOCK_TYPES.OBSIDIAN]: new THREE.MeshLambertMaterial({
-                map: texNoise('#1a0d2e', '#0d0618'),
-                emissive: 0x2a0d4a, emissiveIntensity: 0.25
+                map: generateObsidianTexture(),
+                emissive: 0x3a1a5a,
+                emissiveIntensity: 0.15
             }),
-            [BLOCK_TYPES.FIRE]: new THREE.MeshLambertMaterial({
-                map: FIRE_TEXTURES[0],
-                emissive: 0xff6f00, emissiveIntensity: 1.0,
-                transparent: true, opacity: 0.95,
-                depthWrite: false
-            }),
-            [BLOCK_TYPES.COPPER_DOOR]: new THREE.MeshLambertMaterial({
-                map: texCopperDoor(),
-                emissive: 0x5a3a1a, emissiveIntensity: 0.15
-            }),
+            // ✅ Trampilla: café
             [BLOCK_TYPES.TRAPDOOR]: new THREE.MeshLambertMaterial({
-                map: texTrapdoor(),
+                map: generateBlockTexture('#8d6e4a', '#5d4037'),
                 transparent: true, opacity: 0.95
             })
         };
 
-        // ✅ Catálogo de la mochila
-        const ALL_BLOCKS = [
-            { type: BLOCK_TYPES.LAVA,        label: 'Lava',     color: 'linear-gradient(180deg, #ffea00, #ff6f00)' },
-            { type: BLOCK_TYPES.WATER,       label: 'Agua',     color: 'linear-gradient(180deg, #80d8ff, #1c64b4)' },
-            { type: BLOCK_TYPES.DIRT,        label: 'Tierra',   color: '#795548' },
-            { type: BLOCK_TYPES.STONE,       label: 'Piedra',   color: '#9e9e9e' },
-            { type: BLOCK_TYPES.WOOD,        label: 'Madera',   color: '#a1887f' },
-            { type: BLOCK_TYPES.GRASS,       label: 'Pasto',    color: '#689f38' },
-            { type: BLOCK_TYPES.FIRE,        label: 'Fuego',    color: 'linear-gradient(180deg, #ffea00, #ff6f00)', isFire: true },
-            { type: BLOCK_TYPES.COPPER_DOOR, label: 'Puerta',   color: '#b87333' },   // ✅ ahora llamada "Puerta"
-            { type: BLOCK_TYPES.TRAPDOOR,    label: 'Trampilla', color: '#5d4037' },
-            { type: BLOCK_TYPES.RED_SAND,    label: 'Arena Roja', color: '#b8461e' }   // ✅ NUEVO
+        const HOTBAR = [
+            { type: BLOCK_TYPES.GRASS,    label: 'Pasto',      color: '#689f38' },
+            { type: BLOCK_TYPES.DIRT,     label: 'Tierra',     color: '#795548' },
+            { type: BLOCK_TYPES.STONE,    label: 'Piedra',     color: '#9e9e9e' },
+            { type: BLOCK_TYPES.WATER,    label: 'Agua',       color: '#40a4df' },
+            { type: BLOCK_TYPES.LAVA,     label: 'Lava',       color: '#ff5722' },
+            { type: BLOCK_TYPES.OBSIDIAN, label: 'Obsidiana',  color: '#2a1a3a' },
+            { type: BLOCK_TYPES.TRAPDOOR, label: 'Trampilla',  color: '#8d6e4a' }
         ];
-
-        const hotbar = new Array(HOTBAR_SIZE).fill(null);
         let selectedSlot = 0;
 
+        // ✅ Geometría especial para trampilla (plana)
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-        // ✅ Geometría específica para trampilla (fina)
-        const trapdoorGeometry = new THREE.BoxGeometry(1, TRAPDOOR_THICKNESS, 1);
-        // ✅ Geometría específica para puerta (panel plano)
-        const doorGeometry = new THREE.BoxGeometry(1, 1, DOOR_THICKNESS);
+        const trapdoorGeometry = new THREE.BoxGeometry(1, 0.15, 1);
 
         // ==========================================
         // MUNDO / CHUNKS
@@ -882,16 +430,15 @@
         const getCoordKey = (x, y, z) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
         const getBlock = (x, y, z) => blockMap.get(getCoordKey(x, y, z));
 
+        // ✅ Trampilla abierta = no sólida
         const isSolid = (x, y, z) => {
             const b = blockMap.get(getCoordKey(x, y, z));
             if (!b) return false;
-            if (b.type === BLOCK_TYPES.WATER) return false;
-            if (b.type === BLOCK_TYPES.LAVA) return false;
-            if (b.type === BLOCK_TYPES.FIRE) return false;
-            if (b.type === BLOCK_TYPES.COPPER_DOOR) return !b.open;
-            if (b.type === BLOCK_TYPES.TRAPDOOR) return !b.open;
+            if (b.type === BLOCK_TYPES.WATER || b.type === BLOCK_TYPES.LAVA) return false;
+            if (b.type === BLOCK_TYPES.TRAPDOOR && b.opened) return false;
             return true;
         };
+
         const isWaterAt = (x, y, z) => {
             const b = blockMap.get(getCoordKey(x, y, z));
             return b && b.type === BLOCK_TYPES.WATER;
@@ -899,10 +446,6 @@
         const isLavaAt = (x, y, z) => {
             const b = blockMap.get(getCoordKey(x, y, z));
             return b && b.type === BLOCK_TYPES.LAVA;
-        };
-        const isFireAt = (x, y, z) => {
-            const b = blockMap.get(getCoordKey(x, y, z));
-            return b && b.type === BLOCK_TYPES.FIRE;
         };
 
         const chunks = new Map();
@@ -946,6 +489,8 @@
         }
 
         const dummy = new THREE.Object3D();
+        const trapdoorQuatClosed = new THREE.Quaternion();
+        const trapdoorQuatOpen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
         function rebuildChunk(chunk) {
             while (chunk.group.children.length > 0) {
@@ -967,43 +512,41 @@
                 const mat = materialMap[type];
                 const isWater = type === BLOCK_TYPES.WATER;
                 const isLava = type === BLOCK_TYPES.LAVA;
-                const isFire = type === BLOCK_TYPES.FIRE;
-                const isPalmLeaves = type === BLOCK_TYPES.PALM_LEAVES;
                 const isTrapdoor = type === BLOCK_TYPES.TRAPDOOR;
-                const isDoor = type === BLOCK_TYPES.COPPER_DOOR;
 
-                // ✅ Geometría específica según tipo
-                let geo = blockGeometry;
-                if (isTrapdoor) geo = trapdoorGeometry;
-                else if (isDoor) geo = doorGeometry;
-
+                // ✅ Trampilla usa geometría plana
+                const geo = isTrapdoor ? trapdoorGeometry : blockGeometry;
                 const mesh = new THREE.InstancedMesh(geo, mat, list.length);
-                mesh.castShadow = !isWater && !isPalmLeaves && !isLava && !isFire;
-                mesh.receiveShadow = !isWater && !isLava && !isFire;
+                mesh.castShadow = !isWater && !isLava && !isTrapdoor;
+                mesh.receiveShadow = !isWater && !isLava;
                 mesh.userData.isWater = isWater;
                 mesh.userData.isLava = isLava;
-                mesh.userData.isFire = isFire;
-                mesh.userData.isFluid = isWater || isLava;
                 mesh.userData.isTrapdoor = isTrapdoor;
-                mesh.userData.isDoor = isDoor;
+                mesh.userData.isFluid = isWater || isLava;
 
                 const positions = [];
                 list.forEach((data, idx) => {
                     let yOffset = 0.5;
+                    let quat = trapdoorQuatClosed;
+
                     if (isWater || isLava) {
                         const lvl = data.level ?? 7;
                         const max = isLava ? 5 : 7;
                         yOffset = 0.5 - (1 - Math.min(lvl, max) / max) * 0.35;
+                    } else if (isTrapdoor) {
+                        // ✅ Cerrada: plancha horizontal en el techo del bloque
+                        //    Abierta: rotada 90° a vertical (parece una puerta abierta)
+                        if (data.opened) {
+                            yOffset = 0.5;
+                            quat = trapdoorQuatOpen;
+                        } else {
+                            yOffset = 0.925;
+                            quat = trapdoorQuatClosed;
+                        }
                     }
-                    if (isTrapdoor) {
-                        // ✅ Trampilla plana pegada al bloque inferior
-                        yOffset = TRAPDOOR_THICKNESS / 2;
-                    }
-                    if (isDoor) {
-                        // ✅ Puerta: panel plano, ligeramente desplazado al centro de la celda
-                        yOffset = 0.5;
-                    }
+
                     dummy.position.set(data.x + 0.5, data.y + yOffset, data.z + 0.5);
+                    dummy.quaternion.copy(quat);
                     dummy.updateMatrix();
                     mesh.setMatrixAt(idx, dummy.matrix);
                     positions.push({ x: data.x, y: data.y, z: data.z });
@@ -1027,9 +570,9 @@
         // ==========================================
         // GUARDADO
         // ==========================================
-        const SAVE_KEY_PREFIX = 'MCN_V10_CHUNK_';
-        const SAVE_META_KEY = 'MCN_V10_META';
-        const SAVE_VERSION = 6;
+        const SAVE_KEY_PREFIX = 'MCN_V8_CHUNK_';
+        const SAVE_META_KEY = 'MCN_V8_META';
+        const SAVE_VERSION = 4;
 
         function saveChunk(chunk) {
             const key = SAVE_KEY_PREFIX + chunkKey(chunk.cx, chunk.cz);
@@ -1037,7 +580,9 @@
             try {
                 localStorage.setItem(key, JSON.stringify(data));
                 chunk.needsSave = false;
-            } catch (e) {}
+            } catch (e) {
+                console.warn(`No se pudo guardar chunk ${chunk.cx},${chunk.cz}:`, e);
+            }
         }
         function saveAllDirtyChunks(force = false) {
             for (const chunk of chunks.values()) {
@@ -1083,8 +628,7 @@
             const data = { x: bx, y: by, z: bz, type };
             if (level !== undefined) data.level = level;
             if (expiresAt !== undefined) data.expiresAt = expiresAt;
-            if (type === BLOCK_TYPES.COPPER_DOOR) data.open = false;
-            if (type === BLOCK_TYPES.TRAPDOOR) { data.open = false; data.lastStepTime = 0; }
+            if (type === BLOCK_TYPES.TRAPDOOR) data.opened = false;
 
             blockMap.set(key, data);
             chunk.blocks.set(key, data);
@@ -1107,7 +651,7 @@
         }
 
         // ==========================================
-        // FÍSICA DE FLUIDOS + OBSIDIANA REAL
+        // FÍSICA DE FLUIDOS + OBSIDIANA
         // ==========================================
         const WATER_SOURCE = 7;
         const WATER_MIN_LEVEL = 1;
@@ -1133,50 +677,45 @@
         function getFluidMinLevel(type) {
             return type === BLOCK_TYPES.LAVA ? LAVA_MIN_LEVEL : WATER_MIN_LEVEL;
         }
-        function getOppositeFluid(type) {
-            if (type === BLOCK_TYPES.WATER) return BLOCK_TYPES.LAVA;
-            if (type === BLOCK_TYPES.LAVA) return BLOCK_TYPES.WATER;
-            return null;
-        }
 
-        // ✅ OBSIDIANA REAL: reemplaza UN bloque por obsidiana
-        //    y elimina el bloque OPUESTO que estaba en contacto
-        function convertToObsidian(x, y, z) {
-            const key = getCoordKey(x, y, z);
-            if (!blockMap.has(key)) return false;
-            const data = { x, y, z, type: BLOCK_TYPES.OBSIDIAN };
-            blockMap.set(key, data);
-            const chunk = getChunkForBlock(x, y, z);
-            if (chunk) {
-                chunk.blocks.set(key, data);
-                markChunkDirty(x, z);
-                chunk.needsSave = true;
+        // ✅ Detecta si un bloque de fluido tiene contacto con el fluido opuesto
+        function hasOppositeFluid(x, y, z, type) {
+            const opposite = type === BLOCK_TYPES.LAVA ? BLOCK_TYPES.WATER : BLOCK_TYPES.LAVA;
+            const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+            for (const [dx, dy, dz] of dirs) {
+                const b = getBlock(x+dx, y+dy, z+dz);
+                if (b && b.type === opposite) return true;
             }
-            queueFluidNeighbors(x, y, z);
-            return true;
+            return false;
         }
 
-        // ✅ Convierte un fluido que llega a un contacto → obsidiana
-        //    Y elimina el fluido OPUESTO del vecino (así solo queda 1 obsidiana)
-        function handleFluidContact(x, y, z, oppositeX, oppositeY, oppositeZ, oppositeType) {
-            // 1) El bloque actual se convierte en obsidiana
-            convertToObsidian(x, y, z);
-            // 2) El bloque opuesto (el otro fluido) se ELIMINA
-            removeBlockFromWorld(oppositeX, oppositeY, oppositeZ);
-            // 3) Avisar a los vecinos de ambos
-            queueFluidNeighbors(x, y, z);
-            queueFluidNeighbors(oppositeX, oppositeY, oppositeZ);
+        // ✅ Convierte toda la vena de lava conectada a obsidiana (BFS)
+        function convertLavaFlowToObsidian(sx, sy, sz) {
+            const visited = new Set();
+            const queue = [[sx, sy, sz]];
+            const toConvert = [];
+
+            while (queue.length > 0) {
+                const [x, y, z] = queue.shift();
+                const key = getCoordKey(x, y, z);
+                if (visited.has(key)) continue;
+                visited.add(key);
+                const b = getBlock(x, y, z);
+                if (!b || b.type !== BLOCK_TYPES.LAVA) continue;
+                toConvert.push([x, y, z]);
+                queue.push([x+1,y,z], [x-1,y,z], [x,y+1,z], [x,y-1,z], [x,y,z+1], [x,y,z-1]);
+            }
+            for (const [x, y, z] of toConvert) {
+                removeBlockFromWorld(x, y, z);
+                addBlockToWorld(x, y, z, BLOCK_TYPES.OBSIDIAN);
+                queueFluidNeighbors(x, y, z);
+            }
+            return toConvert.length;
         }
 
         function setFluidAt(x, y, z, type, level) {
             const key = getCoordKey(x, y, z);
             const existing = blockMap.get(key);
-
-            // ✅ Si hay fluido opuesto, ambos se convierten en 1 obsidiana
-            if (existing && isFluid(existing.type) && existing.type !== type) {
-                handleFluidContact(x, y, z, x, y, z, existing.type);
-                return;
-            }
             if (existing && existing.type !== type) return;
 
             const max = getFluidMaxLevel(type);
@@ -1227,27 +766,24 @@
                 if (!block || !isFluid(block.type)) continue;
 
                 const type = block.type;
-                const opposite = getOppositeFluid(type);
                 const minLevel = getFluidMinLevel(type);
                 const maxLevel = getFluidMaxLevel(type);
                 const isLava = type === BLOCK_TYPES.LAVA;
 
-                // ✅ OBSIDIANA REAL: si algún vecino es opuesto, AMBOS se convierten
-                let converted = false;
-                const allNeighbors = [
-                    [x+1,y,z],[x-1,y,z],[x,y+1,z],[x,y-1,z],[x,y,z+1],[x,y,z-1]
-                ];
-                for (const [nx, ny, nz] of allNeighbors) {
-                    const nb = getBlock(nx, ny, nz);
-                    if (nb && nb.type === opposite) {
-                        // El bloque ACTUAL se convierte en obsidiana
-                        // Y el opuesto se ELIMINA (así solo queda 1 bloque nuevo)
-                        handleFluidContact(x, y, z, nx, ny, nz, opposite);
-                        converted = true;
-                        break;
+                // ✅ REACCIÓN OBSIDIANA — se evalúa ANTES de mover el fluido
+                if (hasOppositeFluid(x, y, z, type)) {
+                    if (isLava) {
+                        // 🔥 LAVA toca agua → TODA la vena se vuelve obsidiana
+                        convertLavaFlowToObsidian(x, y, z);
+                    } else {
+                        // 💧 AGUA toca lava → solo este bloque se vuelve obsidiana
+                        removeBlockFromWorld(x, y, z);
+                        addBlockToWorld(x, y, z, BLOCK_TYPES.OBSIDIAN);
+                        queueFluidNeighbors(x, y, z);
                     }
+                    changed = true;
+                    continue;
                 }
-                if (converted) { changed = true; continue; }
 
                 const below = getBlock(x, y - 1, z);
                 if (!below || below.type === type) {
@@ -1290,7 +826,7 @@
         }
 
         // ==========================================
-        // GENERACIÓN DEL MUNDO (Volcán clásico)
+        // GENERACIÓN DEL MUNDO
         // ==========================================
         function hash2D(x, z) {
             const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
@@ -1319,23 +855,9 @@
         const VOLCANO_X = WORLD_SIZE / 2 + 30;
         const VOLCANO_Z = WORLD_SIZE / 2 - 20;
         const VOLCANO_RADIUS = 32;
-        const VOLCANO_HEIGHT = 38;
-
-        // ✅ Volcán clásico: cráter pequeño poco profundo
-        const CRATER_RADIUS = 5;
+        const VOLCANO_HEIGHT = 40;
+        const CRATER_RADIUS = 5;   // cráter en la cima
         const CRATER_DEPTH = 3;
-
-        function placePalmTree(x, baseY, z) {
-            const height = 4 + Math.floor(hash2D(x * 3.1, z * 5.7) * 3);
-            for (let i = 0; i < height; i++) addBlockToWorld(x, baseY + i, z, BLOCK_TYPES.PALM_WOOD);
-            const topY = baseY + height;
-            const leafOffsets = [
-                [0,0],[1,0],[2,0],[-1,0],[-2,0],[0,1],[0,2],[0,-1],[0,-2],
-                [1,1],[1,-1],[-1,1],[-1,-1]
-            ];
-            for (const [dx, dz] of leafOffsets) addBlockToWorld(x + dx, topY, z + dz, BLOCK_TYPES.PALM_LEAVES);
-            addBlockToWorld(x, topY + 1, z, BLOCK_TYPES.PALM_LEAVES);
-        }
 
         function generateWorld(onProgress) {
             const centerX = WORLD_SIZE / 2;
@@ -1346,7 +868,6 @@
 
             let lastProgress = 0;
 
-            // ---- PASO 1: terreno base con volcán clásico ----
             for (let x = 0; x < WORLD_SIZE; x++) {
                 for (let z = 0; z < WORLD_SIZE; z++) {
                     const dx = x - centerX;
@@ -1363,47 +884,57 @@
 
                     let elevation = Math.floor(SEA_LEVEL - 3 + shaped * (8 + heightNoise * 5));
 
-                    // ✅ Volcán clásico: cono sólido con pendiente suave
+                    // ✅ VOLCÁN REALISTA — cono natural con ruido de superficie
                     const dvx = x - VOLCANO_X;
                     const dvz = z - VOLCANO_Z;
                     const distToVolcano = Math.sqrt(dvx * dvx + dvz * dvz);
                     const isVolcanoZone = distToVolcano < VOLCANO_RADIUS;
 
                     if (isVolcanoZone) {
-                        // Perfil cónico con smoothstep para pendiente natural
-                        const t = 1 - (distToVolcano / VOLCANO_RADIUS);
-                        const smooth = t * t * (3 - 2 * t);   // smoothstep
-                        const coneHeight = smooth * VOLCANO_HEIGHT;
-                        elevation = Math.max(elevation, Math.floor(SEA_LEVEL + coneHeight));
+                        const t = 1 - (distToVolcano / VOLCANO_RADIUS);   // 1 centro, 0 borde
+                        // Perfil cónico natural: ligeramente convexo
+                        const profile = Math.pow(t, 1.3);
+                        // Ruido de superficie para que no sea un cono perfecto
+                        const surfaceNoise = fbm(x * 0.18, z * 0.18, 3) - 0.5;
+                        const noiseHeight = surfaceNoise * 4 * t;   // más ruido en el centro
+
+                        let volcanoHeight = profile * VOLCANO_HEIGHT + noiseHeight;
+
+                        // ✅ Cráter en la cima: hundir la parte central
+                        if (distToVolcano < CRATER_RADIUS) {
+                            const craterFactor = 1 - (distToVolcano / CRATER_RADIUS);
+                            volcanoHeight -= craterFactor * CRATER_DEPTH;
+                        }
+
+                        elevation = Math.max(elevation, Math.floor(SEA_LEVEL + volcanoHeight));
                     }
 
-                    // Mezcla de materiales en el volcán
-                    const volcanoMix = isVolcanoZone ? fbm(x * 0.25, z * 0.25, 3) : 0;
+                    // ✅ Mezcla tierra/piedra en las laderas
+                    const volcanoMix = isVolcanoZone ? fbm(x * 0.22, z * 0.22, 3) : 0;
+
+                    // ✅ Piscina de lava en el cráter
+                    const inCraterPool = isVolcanoZone && distToVolcano < CRATER_RADIUS - 1;
+                    const craterSurfaceY = Math.floor(SEA_LEVEL + VOLCANO_HEIGHT - CRATER_DEPTH);
 
                     for (let y = 0; y < elevation; y++) {
                         let type;
-                        if (y === elevation - 1) {
+
+                        // ✅ Lava en el fondo del cráter
+                        if (inCraterPool && y === elevation - 1 && elevation <= craterSurfaceY + 1) {
+                            type = BLOCK_TYPES.LAVA;
+                        } else if (y === elevation - 1) {
                             if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                                // Cerca de la base → RED_SAND; laderas altas → piedra/tierra
-                                if (elevation < SEA_LEVEL + 12) {
-                                    type = BLOCK_TYPES.RED_SAND;
-                                } else {
-                                    type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
-                                }
+                                type = volcanoMix > 0.5 ? BLOCK_TYPES.STONE : BLOCK_TYPES.DIRT;
                             } else if (elevation <= BEACH_UPPER) {
-                                type = BLOCK_TYPES.SAND;
+                                type = BLOCK_TYPES.DIRT;   // ✅ playa ahora es tierra
                             } else {
                                 type = BLOCK_TYPES.GRASS;
                             }
                         } else if (y >= elevation - 4) {
                             if (isVolcanoZone && elevation > SEA_LEVEL + 6) {
-                                if (elevation < SEA_LEVEL + 12) {
-                                    type = BLOCK_TYPES.RED_SAND;
-                                } else {
-                                    type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
-                                }
+                                type = volcanoMix > 0.5 ? BLOCK_TYPES.DIRT : BLOCK_TYPES.STONE;
                             } else {
-                                type = elevation <= BEACH_UPPER ? BLOCK_TYPES.SAND : BLOCK_TYPES.DIRT;
+                                type = elevation <= BEACH_UPPER ? BLOCK_TYPES.DIRT : BLOCK_TYPES.DIRT;
                             }
                         } else {
                             type = BLOCK_TYPES.STONE;
@@ -1411,9 +942,16 @@
                         addBlockToWorld(x, y, z, type);
                     }
 
+                    // ✅ Cima del cráter: rellenar el anillo con piedra (borde elevado)
+                    if (inCraterPool && elevation > craterSurfaceY + 1) {
+                        // ya está hecho por el bucle principal, pero aseguramos piedra
+                        // (no hace falta hacer nada, la lógica de arriba ya pone stone)
+                    }
+
+                    // Rellenar con agua hasta el nivel del mar
                     for (let y = elevation; y <= SEA_LEVEL; y++) {
                         if (elevation >= BEACH_LOWER && elevation <= SEA_LEVEL) {
-                            addBlockToWorld(x, y, z, BLOCK_TYPES.SAND);
+                            addBlockToWorld(x, y, z, BLOCK_TYPES.DIRT);
                         } else {
                             addBlockToWorld(x, y, z, BLOCK_TYPES.WATER, WATER_SOURCE);
                         }
@@ -1421,65 +959,8 @@
                 }
                 if (onProgress && x - lastProgress >= 10) {
                     lastProgress = x;
-                    onProgress(Math.floor((x / WORLD_SIZE) * 60));
+                    onProgress(Math.floor((x / WORLD_SIZE) * 95));
                 }
-            }
-
-            // ---- PASO 2: cráter pequeño del volcán clásico ----
-            const craterTopY = SEA_LEVEL + VOLCANO_HEIGHT;
-            const craterBottomY = craterTopY - CRATER_DEPTH;
-
-            for (let x = Math.floor(VOLCANO_X - CRATER_RADIUS - 1); x <= Math.floor(VOLCANO_X + CRATER_RADIUS + 1); x++) {
-                for (let z = Math.floor(VOLCANO_Z - CRATER_RADIUS - 1); z <= Math.floor(VOLCANO_Z + CRATER_RADIUS + 1); z++) {
-                    if (x < 0 || z < 0 || x >= WORLD_SIZE || z >= WORLD_SIZE) continue;
-                    const dvx = x - VOLCANO_X;
-                    const dvz = z - VOLCANO_Z;
-                    const distToCenter = Math.sqrt(dvx * dvx + dvz * dvz);
-
-                    if (distToCenter < CRATER_RADIUS) {
-                        // Vaciado del cráter
-                        for (let y = craterBottomY; y <= craterTopY + 2; y++) {
-                            if (getBlock(x, y, z)) removeBlockFromWorld(x, y, z);
-                        }
-                        // Lava al fondo del cráter
-                        if (distToCenter < CRATER_RADIUS - 1) {
-                            for (let y = craterBottomY; y < craterBottomY + 2; y++) {
-                                if (!getBlock(x, y, z)) addBlockToWorld(x, y, z, BLOCK_TYPES.LAVA, LAVA_SOURCE);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (onProgress) onProgress(75);
-
-            // ---- PASO 3: palmeras ----
-            for (let x = 2; x < WORLD_SIZE - 2; x++) {
-                for (let z = 2; z < WORLD_SIZE - 2; z++) {
-                    let surfaceY = -1, surfaceType = -1;
-                    for (let y = SEA_LEVEL + 6; y >= 0; y--) {
-                        const b = getBlock(x, y, z);
-                        if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
-                            surfaceY = y; surfaceType = b.type; break;
-                        }
-                    }
-                    if (surfaceType === BLOCK_TYPES.SAND && surfaceY >= SEA_LEVEL - 1 && surfaceY <= SEA_LEVEL + 2) {
-                        const density = hash2D(x * 0.7, z * 1.3);
-                        if (density > 0.985) {
-                            let tooClose = false;
-                            for (let ox = -2; ox <= 2 && !tooClose; ox++)
-                                for (let oz = -2; oz <= 2 && !tooClose; oz++) {
-                                    if (ox === 0 && oz === 0) continue;
-                                    for (let oy = 0; oy < 8; oy++) {
-                                        const nb = getBlock(x + ox, surfaceY + oy, z + oz);
-                                        if (nb && nb.type === BLOCK_TYPES.PALM_WOOD) { tooClose = true; break; }
-                                    }
-                                }
-                            if (!tooClose) placePalmTree(x, surfaceY + 1, z);
-                        }
-                    }
-                }
-                if (onProgress && x % 15 === 0) onProgress(75 + Math.floor((x / WORLD_SIZE) * 25));
             }
             if (onProgress) onProgress(100);
         }
@@ -1498,7 +979,7 @@
                         if (x < 2 || z < 2 || x >= WORLD_SIZE - 2 || z >= WORLD_SIZE - 2) continue;
                         for (let y = 40; y >= 0; y--) {
                             const b = getBlock(x, y, z);
-                            if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA && b.type !== BLOCK_TYPES.FIRE) {
+                            if (b && b.type !== BLOCK_TYPES.WATER && b.type !== BLOCK_TYPES.LAVA) {
                                 return { x: x + 0.5, y: y + 1 + 1.62, z: z + 0.5 };
                             }
                         }
@@ -1633,78 +1114,62 @@
                 camera.position.y - PLAYER_HEIGHT
             ];
             for (const py of points) {
-                const by = Math.floor(py);
-                if (isLavaAt(cx, by, cz) || isFireAt(cx, by, cz)) return true;
+                if (isLavaAt(cx, Math.floor(py), cz)) return true;
             }
             return false;
         }
 
         // ==========================================
-        // PUERTAS Y TRAMPILLAS
+        // TRAMPILLA — lógica de apertura
         // ==========================================
-        function updateDoorsAndTrapdoors() {
-            const now = performance.now();
-            const px = camera.position.x, py = camera.position.y, pz = camera.position.z;
+        // Set de trapdoors actualmente abiertas (por key) para cerrar las que ya no se pisan
+        const currentlyOpenTrapdoors = new Set();
 
-            let anyChanged = false;
+        function updateTrapdoors() {
+            const px = Math.floor(camera.position.x);
+            const pz = Math.floor(camera.position.z);
+            const feetY = Math.floor(camera.position.y - PLAYER_HEIGHT);
+            const bodyY = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.5);
 
-            for (const [key, block] of blockMap.entries()) {
-                if (block.type === BLOCK_TYPES.COPPER_DOOR) {
-                    const dx = (block.x + 0.5) - px;
-                    const dy = (block.y + 0.5) - py;
-                    const dz = (block.z + 0.5) - pz;
-                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            // ✅ Comprobar las 2 celdas donde el jugador podría estar pisando una trapdoor
+            const candidates = [
+                { x: px, y: feetY, z: pz },
+                { x: px, y: feetY + 1, z: pz },
+                { x: px, y: bodyY, z: pz }
+            ];
 
-                    const shouldOpen = dist <= DOOR_TRIGGER_DISTANCE;
-                    if (shouldOpen !== block.open) {
-                        block.open = shouldOpen;
-                        const chunk = getChunkForBlock(block.x, block.y, block.z);
-                        if (chunk) {
-                            chunk.blocks.set(key, block);
-                            markChunkDirty(block.x, block.z);
-                            chunk.needsSave = true;
-                        }
-                        anyChanged = true;
-                    }
-                }
+            const touchedThisFrame = new Set();
 
-                if (block.type === BLOCK_TYPES.TRAPDOOR) {
-                    const feetY = py - PLAYER_HEIGHT;
-                    const onTop = (
-                        Math.abs(px - (block.x + 0.5)) < 0.6 &&
-                        Math.abs(pz - (block.z + 0.5)) < 0.6 &&
-                        feetY >= block.y + TRAPDOOR_THICKNESS - 0.15 &&
-                        feetY <= block.y + TRAPDOOR_THICKNESS + 0.35
-                    );
-
-                    if (onTop) {
-                        block.lastStepTime = now;
-                        if (!block.open) {
-                            block.open = true;
-                            const chunk = getChunkForBlock(block.x, block.y, block.z);
-                            if (chunk) {
-                                chunk.blocks.set(key, block);
-                                markChunkDirty(block.x, block.z);
-                                chunk.needsSave = true;
-                            }
-                            anyChanged = true;
-                        }
-                    } else {
-                        if (block.open && now - (block.lastStepTime || 0) > TRAPDOOR_CLOSE_DELAY) {
-                            block.open = false;
-                            const chunk = getChunkForBlock(block.x, block.y, block.z);
-                            if (chunk) {
-                                chunk.blocks.set(key, block);
-                                markChunkDirty(block.x, block.z);
-                                chunk.needsSave = true;
-                            }
-                            anyChanged = true;
-                        }
+            for (const c of candidates) {
+                const b = getBlock(c.x, c.y, c.z);
+                if (b && b.type === BLOCK_TYPES.TRAPDOOR) {
+                    const key = getCoordKey(c.x, c.y, c.z);
+                    touchedThisFrame.add(key);
+                    if (!b.opened) {
+                        b.opened = true;
+                        markChunkDirty(c.x, c.z);
+                        const chunk = getChunkForBlock(c.x, c.y, c.z);
+                        if (chunk) chunk.needsSave = true;
                     }
                 }
             }
 
-            return anyChanged;
+            // ✅ Cerrar las que ya no se pisan
+            for (const key of currentlyOpenTrapdoors) {
+                if (!touchedThisFrame.has(key)) {
+                    const [x, y, z] = key.split(',').map(Number);
+                    const b = getBlock(x, y, z);
+                    if (b && b.type === BLOCK_TYPES.TRAPDOOR && b.opened) {
+                        b.opened = false;
+                        markChunkDirty(x, z);
+                        const chunk = getChunkForBlock(x, y, z);
+                        if (chunk) chunk.needsSave = true;
+                    }
+                }
+            }
+
+            currentlyOpenTrapdoors.clear();
+            for (const key of touchedThisFrame) currentlyOpenTrapdoors.add(key);
         }
 
         // ==========================================
@@ -1712,15 +1177,13 @@
         // ==========================================
         const deathScreen = document.getElementById('deathScreen');
         const deathTimerEl = document.getElementById('deathTimer');
-        const deathMessage = document.getElementById('deathMessage');
         const lavaOverlay = document.getElementById('lavaOverlay');
 
-        function triggerDeath(cause = 'lava') {
+        function triggerDeath() {
             if (isDead) return;
             isDead = true;
             deathEndTime = performance.now() + DEATH_DURATION_MS;
             velocity.set(0, 0, 0);
-            deathMessage.textContent = cause === 'fire' ? '🔥 MORISTE POR FUEGO 🔥' : '💀 MORISTE POR LAVA 💀';
             deathScreen.classList.add('active');
             lavaOverlay.classList.remove('active');
             deathTimerEl.textContent = '5';
@@ -1811,11 +1274,9 @@
 
             function step() {
                 const t = Math.min(1, (performance.now() - startTime) / duration);
-                const y = startY + (endY - startY) * t;
-                mesh.position.y = y + 0.5;
-                if (t < 1) {
-                    requestAnimationFrame(step);
-                } else {
+                mesh.position.y = (startY + (endY - startY) * t) + 0.5;
+                if (t < 1) requestAnimationFrame(step);
+                else {
                     scene.remove(meteorGroup);
                     mesh.geometry.dispose();
                     mesh.material.dispose();
@@ -1845,115 +1306,12 @@
         }
 
         // ==========================================
-        // INVENTARIO / MOCHILA
-        // ==========================================
-        const inventoryOverlay = document.getElementById('inventoryOverlay');
-        const backpackBtn = document.getElementById('backpackBtn');
-        const invGrid = document.getElementById('invGrid');
-        const invHotbarEl = document.getElementById('invHotbar');
-        const closeInventoryBtn = document.getElementById('closeInventoryBtn');
-        const invToast = document.getElementById('invToast');
-
-        let isInventoryOpen = false;
-
-        function showInvToast(msg) {
-            invToast.textContent = msg;
-            invToast.classList.add('show');
-            clearTimeout(showInvToast._t);
-            showInvToast._t = setTimeout(() => invToast.classList.remove('show'), 1800);
-        }
-
-        function buildInventoryGrid() {
-            invGrid.innerHTML = '';
-            ALL_BLOCKS.forEach(blockDef => {
-                const el = document.createElement('div');
-                el.className = 'inv-block';
-                const isAssigned = hotbar.some(s => s && s.type === blockDef.type);
-                if (isAssigned) el.classList.add('assigned');
-                el.innerHTML = `
-                    <div class="swatch ${blockDef.isFire ? 'fire-anim' : ''}" style="background:${blockDef.color}"></div>
-                    <div class="label">${blockDef.label}</div>
-                `;
-                el.addEventListener('click', () => {
-                    const emptyIdx = hotbar.findIndex(s => s === null);
-                    if (emptyIdx === -1) {
-                        showInvToast('⚠️ Hotbar llena. Vacía un slot primero.');
-                        return;
-                    }
-                    hotbar[emptyIdx] = { ...blockDef };
-                    buildInventoryGrid();
-                    buildInventoryHotbar();
-                    buildMainHotbar();
-                    showInvToast(`✓ ${blockDef.label} → slot ${emptyIdx + 1}`);
-                });
-                invGrid.appendChild(el);
-            });
-        }
-
-        function buildInventoryHotbar() {
-            invHotbarEl.innerHTML = '';
-            for (let i = 0; i < HOTBAR_SIZE; i++) {
-                const slot = hotbar[i];
-                const el = document.createElement('div');
-                el.className = 'inv-hotbar-slot' + (slot ? ' filled' : '');
-                el.innerHTML = `
-                    <span class="key">${i + 1}</span>
-                    ${slot
-                        ? `<div class="swatch" style="background:${slot.color}"></div>
-                           <span>${slot.label}</span>`
-                        : `<span class="empty-mark">+</span>`}
-                `;
-                el.addEventListener('click', () => {
-                    if (hotbar[i]) {
-                        const name = hotbar[i].label;
-                        hotbar[i] = null;
-                        buildInventoryGrid();
-                        buildInventoryHotbar();
-                        buildMainHotbar();
-                        showInvToast(`🗑️ ${name} eliminado del slot ${i + 1}`);
-                    }
-                });
-                invHotbarEl.appendChild(el);
-            }
-        }
-
-        function openInventory() {
-            isInventoryOpen = true;
-            inventoryOverlay.classList.add('active');
-            backpackBtn.classList.add('hidden');
-            buildInventoryGrid();
-            buildInventoryHotbar();
-            if (controls.isLocked) controls.unlock();
-            blocker.classList.add('hidden');
-        }
-
-        function closeInventory() {
-            isInventoryOpen = false;
-            inventoryOverlay.classList.remove('active');
-            backpackBtn.classList.remove('hidden');
-            if (!controls.isLocked) blocker.classList.remove('hidden');
-        }
-
-        backpackBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openInventory();
-        });
-        closeInventoryBtn.addEventListener('click', () => closeInventory());
-
-        // ==========================================
         // INPUT
         // ==========================================
         const keys = { w: false, a: false, s: false, d: false, space: false, up: false, down: false };
 
         document.addEventListener('keydown', (e) => {
             if (isDead) return;
-            if (e.code === 'KeyB') {
-                if (isInventoryOpen) closeInventory();
-                else openInventory();
-                return;
-            }
-            if (isInventoryOpen) return;
-
             if (e.code === 'KeyW') keys.w = true;
             if (e.code === 'KeyA') keys.a = true;
             if (e.code === 'KeyS') keys.s = true;
@@ -1963,9 +1321,9 @@
             if (e.code === 'ArrowDown') keys.down = true;
 
             const num = parseInt(e.key);
-            if (num >= 1 && num <= HOTBAR_SIZE) {
+            if (num >= 1 && num <= HOTBAR.length) {
                 selectedSlot = num - 1;
-                buildMainHotbar();
+                updateHotbarUI();
             }
             if (e.code === 'Enter' && controls.isLocked) {
                 const target = getTargetBlock();
@@ -1991,38 +1349,20 @@
         });
 
         window.addEventListener('wheel', (e) => {
-            if (isDead || isInventoryOpen || !controls.isLocked) return;
-            selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR_SIZE) % HOTBAR_SIZE;
-            buildMainHotbar();
+            if (isDead || !controls.isLocked) return;
+            selectedSlot = (selectedSlot + (e.deltaY > 0 ? 1 : -1) + HOTBAR.length) % HOTBAR.length;
+            updateHotbarUI();
         });
 
         window.addEventListener('mousedown', (e) => {
-            if (isDead || isInventoryOpen || !controls.isLocked) return;
+            if (isDead || !controls.isLocked) return;
             if (e.button === 0) {
-                const slot = hotbar[selectedSlot];
-                if (!slot) return;
                 const target = getTargetBlock();
                 if (!target) return;
-
-                // ✅ Trampilla: colocarla pegada al bloque golpeado
-                if (slot.type === BLOCK_TYPES.TRAPDOOR) {
-                    if (target.normal.y === 1) {
-                        const bx = target.x, by = target.y, bz = target.z;
-                        const key = getCoordKey(bx, by, bz);
-                        const existing = blockMap.get(key);
-                        if (existing && !isFluid(existing.type)) return;
-                        // Reemplazar si es fluido
-                        if (existing) removeBlockFromWorld(bx, by, bz);
-                        // Colocar trampilla en la MISMA celda (queda plana al fondo)
-                        addBlockToWorld(bx, by, bz, BLOCK_TYPES.TRAPDOOR);
-                    }
-                    return;
-                }
-
                 const bx = target.x + target.normal.x;
                 const by = target.y + target.normal.y;
                 const bz = target.z + target.normal.z;
-                addBlock(bx, by, bz, slot.type);
+                addBlock(bx, by, bz, HOTBAR[selectedSlot].type);
             }
         });
 
@@ -2037,7 +1377,7 @@
             const key = getCoordKey(bx, by, bz);
             const existing = blockMap.get(key);
 
-            const isFluidType = type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA || type === BLOCK_TYPES.FIRE;
+            const isFluidType = type === BLOCK_TYPES.WATER || type === BLOCK_TYPES.LAVA;
             if (!isFluidType && collidesWithPlayer(bx, by, bz)) return;
 
             if (existing) {
@@ -2084,7 +1424,7 @@
             const solidMeshes = [];
             for (const chunk of chunks.values()) {
                 for (const child of chunk.group.children) {
-                    if (child.isInstancedMesh && !child.userData.isWater) {
+                    if (child.isInstancedMesh && !child.userData.isWater && !child.userData.isTrapdoor) {
                         solidMeshes.push(child);
                     }
                 }
@@ -2109,7 +1449,7 @@
             const fluidMeshes = [];
             for (const chunk of chunks.values()) {
                 for (const child of chunk.group.children) {
-                    if (child.isInstancedMesh && (child.userData.isFluid || child.userData.isFire)) {
+                    if (child.isInstancedMesh && child.userData.isFluid) {
                         fluidMeshes.push(child);
                     }
                 }
@@ -2127,47 +1467,38 @@
         }
 
         // ==========================================
-        // ANIMACIÓN DE FUEGO
+        // UI HOTBAR
         // ==========================================
-        let fireFrameIndex = 0;
-        let lastFireFrameTime = 0;
-        const FIRE_FRAME_INTERVAL = 150;
-
-        function updateFireAnimation() {
-            const now = performance.now();
-            if (now - lastFireFrameTime < FIRE_FRAME_INTERVAL) return;
-            lastFireFrameTime = now;
-            fireFrameIndex = (fireFrameIndex + 1) % FIRE_TEXTURES.length;
-
-            const mat = materialMap[BLOCK_TYPES.FIRE];
-            if (mat && mat.map !== FIRE_TEXTURES[fireFrameIndex]) {
-                mat.map = FIRE_TEXTURES[fireFrameIndex];
-                mat.needsUpdate = true;
-            }
-        }
-
-        // ==========================================
-        // UI HOTBAR PRINCIPAL
-        // ==========================================
-        function buildMainHotbar() {
-            const hotbarEl = document.getElementById('hotbar');
-            hotbarEl.innerHTML = '';
-            for (let i = 0; i < HOTBAR_SIZE; i++) {
-                const slot = hotbar[i];
+        function buildHotbarUI() {
+            const hotbar = document.getElementById('hotbar');
+            hotbar.innerHTML = '';
+            HOTBAR.forEach((slot, idx) => {
                 const el = document.createElement('div');
-                el.className = 'slot' + (i === selectedSlot ? ' active' : '') + (!slot ? ' empty' : '');
-                if (slot) {
-                    el.innerHTML = `
-                        <span class="key">${i + 1}</span>
-                        <div class="swatch" style="background:${slot.color}"></div>
-                        <span>${slot.label}</span>
-                    `;
-                } else {
-                    el.innerHTML = `<span class="key">${i + 1}</span><span style="opacity:0.4; font-size:16px">—</span>`;
-                }
-                hotbarEl.appendChild(el);
-            }
+                el.className = 'slot' + (idx === selectedSlot ? ' active' : '');
+                el.innerHTML = `
+                    <span class="key">${idx + 1}</span>
+                    <div class="swatch" style="background:${slot.color}"></div>
+                    <span>${slot.label}</span>
+                `;
+                el.addEventListener('click', () => {
+                    if (isDead) return;
+                    selectedSlot = idx;
+                    updateHotbarUI();
+                });
+                hotbar.appendChild(el);
+            });
         }
+
+        function updateHotbarUI() {
+            const slots = document.querySelectorAll('.slot');
+            slots.forEach((s, i) => s.classList.toggle('active', i === selectedSlot));
+            const blockInfo = document.getElementById('blockInfo');
+            blockInfo.textContent = `Seleccionado: ${HOTBAR[selectedSlot].label}`;
+            blockInfo.classList.add('visible');
+            clearTimeout(updateHotbarUI._t);
+            updateHotbarUI._t = setTimeout(() => blockInfo.classList.remove('visible'), 1200);
+        }
+        buildHotbarUI();
 
         // ==========================================
         // RESET
@@ -2194,6 +1525,7 @@
                 chunks.clear();
                 blockMap.clear();
                 fluidUpdateQueue.clear();
+                currentlyOpenTrapdoors.clear();
 
                 generateWorld((p) => { loadingBar.style.width = p + '%'; });
                 for (const chunk of chunks.values()) chunk.dirty = true;
@@ -2217,8 +1549,6 @@
         const FLUID_TICK_RATE = 0.15;
         let saveAccumulator = 0;
         const SAVE_TICK_RATE = 3.0;
-        let doorAccumulator = 0;
-        const DOOR_TICK_RATE = 0.1;
 
         const waterOverlay = document.getElementById('waterOverlay');
         let overlayActive = false;
@@ -2228,13 +1558,15 @@
         function updateCounters() {
             document.getElementById('chunkCount').textContent = chunks.size;
             document.getElementById('blockCount').textContent = blockMap.size.toLocaleString();
-            let waterCount = 0, lavaCount = 0;
+            let waterCount = 0, lavaCount = 0, obsidianCount = 0;
             for (const b of blockMap.values()) {
                 if (b.type === BLOCK_TYPES.WATER) waterCount++;
-                if (b.type === BLOCK_TYPES.LAVA) lavaCount++;
+                else if (b.type === BLOCK_TYPES.LAVA) lavaCount++;
+                else if (b.type === BLOCK_TYPES.OBSIDIAN) obsidianCount++;
             }
             document.getElementById('waterCount').textContent = waterCount.toLocaleString();
             document.getElementById('lavaCount').textContent = lavaCount.toLocaleString();
+            document.getElementById('obsidianCount').textContent = obsidianCount.toLocaleString();
         }
 
         function animate() {
@@ -2245,19 +1577,11 @@
             const processed = processDirtyChunks(4);
             if (processed > 0) updateCounters();
 
-            updateFireAnimation();
-
             fluidAccumulator += delta;
             if (fluidAccumulator >= FLUID_TICK_RATE) {
                 fluidAccumulator = 0;
                 let it = 0;
                 while (tickFluids() && it < 5) it++;
-            }
-
-            doorAccumulator += delta;
-            if (doorAccumulator >= DOOR_TICK_RATE) {
-                doorAccumulator = 0;
-                updateDoorsAndTrapdoors();
             }
 
             cleanupExpiredLava();
@@ -2281,15 +1605,14 @@
                 return;
             }
 
-            if (controls.isLocked && !isInventoryOpen) {
-                const inLava = isPlayerInLava();
-                if (inLava) {
+            if (controls.isLocked) {
+                // ✅ Actualizar trapdoors (apertura/cierre automático)
+                updateTrapdoors();
+
+                // Chequear lava
+                if (isPlayerInLava()) {
                     lavaOverlay.classList.add('active');
-                    const cx = Math.floor(camera.position.x);
-                    const cz = Math.floor(camera.position.z);
-                    const by = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.5);
-                    const cause = isFireAt(cx, by, cz) ? 'fire' : 'lava';
-                    triggerDeath(cause);
+                    triggerDeath();
                     renderer.render(scene, camera);
                     return;
                 } else {
@@ -2380,22 +1703,17 @@
 
                 if (isPlayerInLava()) {
                     lavaOverlay.classList.add('active');
-                    const cx = Math.floor(camera.position.x);
-                    const cz = Math.floor(camera.position.z);
-                    const by = Math.floor(camera.position.y - PLAYER_HEIGHT * 0.5);
-                    const cause = isFireAt(cx, by, cz) ? 'fire' : 'lava';
-                    triggerDeath(cause);
+                    triggerDeath();
                 }
             }
 
-            renderer.scene && renderer.render(scene, camera);
+            renderer.render(scene, camera);
         }
 
         // ==========================================
         // ARRANQUE
         // ==========================================
         const loadingBar = document.getElementById('loadingBar');
-        buildMainHotbar();
         loadOrGenerateWorld((p) => { loadingBar.style.width = p + '%'; });
         animate();
 
